@@ -246,7 +246,7 @@ class Game:
         elif message.channel==self.admin: author = "admin"
         elif message.channel in map(lambda x:x.channel, self.Players.values()): author = "player"
         if not author: return
-        
+        print(author) #debug
         
         if author=="player":
             for person in self.Players.values():
