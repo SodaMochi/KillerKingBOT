@@ -322,7 +322,7 @@ class MessageInputForm(View):
         
         # 送信する
         # プレイヤーが2名いる状態の「クイーン」に送ると複数ログが出る
-        for name,role in self.game.Roles:
+        for name,role in self.game.Roles.items():
             if name==self.address:
                 if await self.sender.SendMessage(self.address,self.content):
                     await self.game.Players[self.game.Roles[name].player_name].ReceiveMessage(self.sender.role_name,self.content)
