@@ -321,8 +321,7 @@ class MessageInputForm(View):
                     return
                 for player_name in self.game.Roles[name].player_name:
                     await self.game.Players[player_name].ReceiveMessage(self.sender.role_name,self.content)
-                interaction.response.edit_message(embed=discord.Embed(title=f'以下のメッセージを送信しました',description=f'{self.sender.role_name}からメッセージが届きました\n\n{self.content}'))
-                return
+                await interaction.response.edit_message(embed=discord.Embed(title=f'以下のメッセージを送信しました',description=f'{self.sender.role_name}からメッセージが届きました\n\n{self.content}'))
         
     def GenerateInputStatus(self) -> discord.Embed:
         text = f"宛先: {self.address}\n\n{self.content}"
