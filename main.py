@@ -164,9 +164,9 @@ class Game:
         self.phase = "ゲーム開始前"
         self.time_in_game = 0
         
-        for name,role in role_data:
+        for name,role in role_data.items():
             self.Roles[name] = Role(name,role["initial_player_name"],role["ability_usage_count"])
-        for name,player in player_data:
+        for name,player in player_data.items():
             self.Players[name] = Player(name,player["initial_role"])
           
     # セーブデータをファイルに書き込む(BOT再起動時にデータを持ち越すため)  
@@ -247,7 +247,7 @@ class Game:
             self.admin = channel
             await SendSystemMessage(channel,"adminチャンネルを設定しました")
             return
-        for name,player in player_data:
+        for name,player in player_data.items():
             if res in player["name_variants"]: 
                 self.Players[name].channel = channel
                 await SendSystemMessage(channel,f"{name}のチャンネルを設定しました")
