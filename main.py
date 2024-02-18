@@ -156,7 +156,7 @@ class Game:
         # lobyは接続時に最初に発言したチャンネルに固定する(以前のチャンネル全てが削除されてやり取り不可になるのを避けるため)
         self.loby:discord.TextChannel = loby
         
-        self.admin:discord.TextChannel
+        self.admin:discord.TextChannel = None
         # {name : value}
         self.Roles:dict = dict()
         self.Players:dict = dict()
@@ -237,6 +237,9 @@ class Game:
         if author=="player":
             for person in self.Players:
                 if message.channel==person.channel: player:Player = person
+                
+            # 本来はゲーム中コマンド
+            
             # プレイヤー用コマンド
             if cmd=="dm" or cmd=="DM": player.SendDM()
             
