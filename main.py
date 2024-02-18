@@ -49,7 +49,7 @@ class Player:
     def __init__(self,player_name:str,role_name:str):
         self.player_name:str = player_name
         self.role_name:str = role_name
-        self.channel:discord.TextChannel
+        self.channel:discord.TextChannel = None
         self.sent_roles = list()
         self.replyable_roles = list()
         self.waiting_embed:discord.Message = None #入力待ち中にコマンドを入力されたときに処理を中断する用
@@ -181,7 +181,7 @@ class Game:
         save["time_in_game"] = self.time_in_game    
         # 各Player, Roleのデータ
         roles = dict()
-        for name,role in self.Roles:
+        for role in self.Roles.values():
             d = dict()
             d["player_name"] = role.player_name
             d["remaining_ability_usage"] = role.remaining_ability_usage
@@ -190,7 +190,7 @@ class Game:
         save["roles"] = roles
         
         players = dict()
-        for player in self.Players:
+        for player in self.Players.values():
             d = dict()
             d["role_name"] = player.role_name
             if player.channel:
