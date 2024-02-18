@@ -203,11 +203,12 @@ class Game:
         save["players"] = players
         
         # ファイル書き込み
-        with open('save_data.json','r+') as f:
+        with open('save_data.json','r') as f:
             try:
                 save_data = json.load(f)
             except:
                 save_data = dict()
+        with open('save_data.json','w') as f:
             save_data[self.loby.guild.id] = save
             json.dump(save_data,f,indent=4)
     
@@ -342,6 +343,7 @@ async def VerifyGuild(message:discord.Message) -> Game:
         except:
             data = dict()
         # セーブデータがあるなら、ロードする
+        print(data) #debug
         if message.guild.id in data:
             game.Load(data[message.guild.id]) 
             if game.phase == "ゲーム進行中":
