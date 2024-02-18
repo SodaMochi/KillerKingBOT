@@ -315,9 +315,8 @@ class MessageInputForm(View):
         # 送信する
         for name in self.game.Roles.keys():
             if name==self.address:
-                try: await self.sender.SendMessage(self.address,self.content)
-                except Exception as e:
-                    print(e)
+                try: self.sender.SendMessage(self.address,self.content)
+                except Exception:
                     await interaction.response.send_message(embed=GetErrorEmbed('送信できない宛先です'))
                     return
                 for player_name in self.game.Roles[name].player_name:
