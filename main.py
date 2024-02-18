@@ -93,9 +93,10 @@ class Player:
             self.replyable_roles.remove(address_role)
         else:
             if address_role in self.sent_roles:
-                print(address_role,self.sent_roles)
+                print(address_role,self.sent_roles) #debug
                 raise Exception('invalid address')
             self.sent_roles.append(address_role)
+        print("ok")
     
     # 受信側
     async def ReceiveMessage(self,sender_role:str,content:str,is_reply:bool=False):
