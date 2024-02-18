@@ -204,7 +204,10 @@ class Game:
         
         # ファイル書き込み
         with open('save_data.json','r+') as f:
-            save_data = json.load(f)
+            try:
+                save_data = json.load(f)
+            except:
+                save_data = dict()
             save_data[self.loby.guild.id] = save
             json.dump(save_data,f,indent=4)
     
