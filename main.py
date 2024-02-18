@@ -244,7 +244,7 @@ class Game:
         
         
         if author=="player":
-            for person in self.Players:
+            for person in self.Players.values():
                 if message.channel==person.channel: player:Player = person
                 
             # 本来はゲーム中コマンド
