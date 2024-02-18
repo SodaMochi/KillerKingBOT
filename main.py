@@ -3,6 +3,7 @@ import discord
 import re
 from discord.interactions import Interaction
 from discord.ui import Select,View,Button
+from discord.ext import tasks
 #from discord_components import Button, Select, SelectOption, ComponentsBot
 import random
 import datetime
@@ -50,18 +51,15 @@ class Player:
         self.player_name:str = player_name
         self.role_name:str = role_name
         self.channel:discord.TextChannel = None
-        self.sent_roles = list()
+        self.sendable_roles = [item for item in role_data]
         self.replyable_roles = list()
         self.waiting_embed:discord.Message = None #入力待ち中にコマンドを入力されたときに処理を中断する用
         
     #ヘルプメッセージを(項目:本文)の辞書で返す
-    def GetHelpMessage(self,role_list:list) -> dict: #role_list: ゲーム内のRolesリスト
-        DMable_roles = list()
-        for item in role_list:
-            if not item.role_name in self.sent_roles: DMable_roles.append(item.role_name)
+    def GetHelpMessage(self) -> dict:
         res = dict()
         res["あなたの名前"] = self.player_name
-        res["DMを送信可能"] = DMable_roles
+        res["DMを送信可能"] = ','.join(self.sendable_roles)
         return res
     
     #現在実行中のView(Button,Select...)を中止し、エラーメッセージに差し替える
@@ -76,12 +74,23 @@ class Player:
     #「DM」を送るためのフォーム
     # Mikado(特定個人にしか送れない)、Doki(Jokerに無制限に遅れる)はオーバーライドする
     async def SendMessageInputForm(self,game):
+        # Error: 既に上限までメッセージを送信した
+        if not self.sendable_roles:
+            await SendError(self.channel,'送信可能な宛先がありません')
+            return
+        
         # 送信フォームを送信
-        # embed: 入力内容を表示    view: 入力ボタン、送信先選択、送信ボタン
-        view = MessageInputForm(game,self)
+        view = MessageInputForm(game,self) # embed: 入力内容を表示    view: 入力ボタン、送信先選択、送信ボタン
+        for role_name in self.sendable_roles:
+            view.select_callback.add_option(discord.SelectOption(label=role_name))
         await self.channel.send(embed=view.GenerateInputStatus(),view=view)
         
     async def SendReplyInputForm(self):
+        # Error: 送信可能な役職がない
+        if not self.replyable_roles:
+            await SendError(self.channel,'返信可能な宛先がありません')
+            return
+        # TODO: ここで返信入力フォームを送信
         return
     
     # メッセージを送信可能か判定し、送信ステータスを更新する
@@ -92,11 +101,9 @@ class Player:
                 raise Exception('invalid address')
             self.replyable_roles.remove(address_role)
         else:
-            if address_role in self.sent_roles:
-                print(address_role,self.sent_roles) #debug
+            if not address_role in self.sendable_roles:
                 raise Exception('invalid address')
-            self.sent_roles.append(address_role)
-        print("ok")
+            self.sendable_roles.remove(address_role)
     
     # 受信側
     async def ReceiveMessage(self,sender_role:str,content:str,is_reply:bool=False):
@@ -190,7 +197,7 @@ class Game:
                 d["channel_id"] = player.channel.id
             else:
                 d["channel_id"] = None
-            d["sent_roles"] = player.sent_roles
+            d["sendable_roles"] = player.sendable_roles
             d["replyable_roles"] = player.replyable_roles
             players[player.player_name] = d
         save["players"] = players
@@ -223,7 +230,7 @@ class Game:
             player.role_name = data["role_name"]
             if data["channel_id"]:
                 player.channel = client.get_channel(data["channel_id"])
-            player.sent_roles = data["sent_roles"]
+            player.sendable_roles = data["sendable_roles"]
             player.replyable_roles = data["replyable_roles"]
     
     async def Interpret(self,message:discord.Message):
@@ -279,9 +286,22 @@ class Game:
                 return
         await SendError(channel,"該当のチャンネル名が見つかりません\n漢字、ひらがな、名字、名前、フルネームのいずれかで入力してください")
         
+    # チャンネルが全て設定済みかどうか
+    # True or (未設定のチャンネル名リスト) を返す
+    def IsChannelReady(self):
+        unset_channels = list()
+        if not self.loby: unset_channels.append("loby")
+        if not self.admin: unset_channels.append("admin")
+        for player in self.Players.values():
+            if not player.channel: unset_channels.append(player.player_name)
+            
+        if unset_channels: return unset_channels
+        else: return True
+        
 '''
     discord.ui
 '''
+
 # Player.SendDMで用いる
 # ReplyInputFormを継承してつくる？
 class MessageInputForm(View):
@@ -297,9 +317,8 @@ class MessageInputForm(View):
     async def input_callback(self,interaction:discord.Interaction,button:Button):
         await interaction.response.send_modal(InputModal(self))
         
-    # ここのroles_nameをgameからの参照に変えることはできない(デコレータではselfの参照ができないので)
-    @discord.ui.select(options=list(map(lambda x:discord.SelectOption(label=x), roles_name)),
-                       placeholder="宛先を選択")
+    # 選択肢は可変なので、外からadd_optionで渡す
+    @discord.ui.select(placeholder="宛先を選択")
     async def select_callback(self,interaction:discord.Interaction,select:Select):
         self.address = select.values[0]
         await interaction.response.edit_message(embed=self.GenerateInputStatus(),view=self)
@@ -377,6 +396,16 @@ async def VerifyGuild(message:discord.Message) -> Game:
 '''
     実行
 '''
+# 進行中のゲームの時間を進める
+@tasks.loop(minutes=1)
+async def call():
+    print("1ふん たちました")#debug
+    for game in games.values():
+        if game.phase=="ゲーム進行中":
+            game.time_in_game += 1
+            # TODO: あとで書く 帝のメッセージと、能力解禁
+            if game.time_in_game in [10,15,20,30]: return
+            elif game.time_in_game==90: return
     
 @client.event
 async def on_ready():
@@ -384,9 +413,9 @@ async def on_ready():
 @client.event
 async def on_message(message:discord.Message):
     if message.author.bot: return
+    # サーバーの認証
     game = await VerifyGuild(message)
-    
-    #コマンドの解釈・実行
+    # コマンドの解釈・実行
     await game.Interpret(message)
     
 client.run(TOKEN)
