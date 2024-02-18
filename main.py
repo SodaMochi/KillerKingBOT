@@ -173,7 +173,10 @@ class Game:
     def Save(self):
         save = dict()
         # Gameのデータ
-        save["admin_id"] = self.admin.id
+        if self.admin:
+            save["admin_id"] = self.admin.id
+        else:
+            save["admin_id"] = None
         save["phase"] = self.phase
         save["time_in_game"] = self.time_in_game    
         # 各Player, Roleのデータ
@@ -190,7 +193,10 @@ class Game:
         for player in self.Players:
             d = dict()
             d["role_name"] = player.role_name
-            d["channel_id"] = player.channel.id
+            if player.channel:
+                d["channel_id"] = player.channel.id
+            else:
+                d["channel_id"] = None
             d["sent_roles"] = player.sent_roles
             d["replyable_roles"] = player.replyable_roles
             players[player.player_name] = d
@@ -230,7 +236,7 @@ class Game:
         author:str
         if message.channel==self.loby: author = "loby"
         elif message.channel==self.admin: author = "admin"
-        elif message.channel in map(lambda x:x.channel, self.Players): author = "player"
+        elif message.channel in map(lambda x:x.channel, self.Players.keys()): author = "player"
         if not author: return
         
         
