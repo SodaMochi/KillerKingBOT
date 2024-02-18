@@ -82,7 +82,7 @@ class Player:
         # 入力フォームを送信
         view = MessageInputForm(game,self) # embed: 入力内容を表示    view: 入力ボタン、送信先選択、送信ボタン
         for role_name in self.sendable_roles:
-            view.select_callback.add_option(discord.SelectOption(label=role_name))
+            view.select_callback.add_option(label=role_name)
         await self.channel.send(embed=view.GenerateInputStatus(),view=view)
         
     async def SendReplyInputForm(self,game):
@@ -344,7 +344,7 @@ class MessageInputForm(View):
                     return
                 for player_name in self.game.Roles[name].player_name:
                     await self.game.Players[player_name].ReceiveMessage(self.sender.role_name,self.content,self.is_reply)
-                await interaction.response.edit_message(embed=discord.Embed(title=f'以下のメッセージを送信しました',description=f'{self.sender.role_name}からメッセージが届きました\n\n{self.content}'))
+                await interaction.response.edit_message(view=None,embed=discord.Embed(title=f'以下のメッセージを送信しました',description=f'{self.sender.role_name}からメッセージが届きました\n\n{self.content}'))
         
     def GenerateInputStatus(self) -> discord.Embed:
         text = f"宛先: {self.address}\n\n{self.content}"
@@ -402,7 +402,7 @@ async def VerifyGuild(message:discord.Message) -> Game:
 '''
 # 進行中のゲームの時間を進める
 @tasks.loop(minutes=1)
-async def call():
+async def loop():
     print("1ふん たちました")#debug
     for game in games.values():
         if game.phase=="ゲーム進行中":
@@ -423,4 +423,4 @@ async def on_message(message:discord.Message):
     await game.Interpret(message)
     
 client.run(TOKEN)
-        
+loop.start()
