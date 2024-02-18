@@ -304,7 +304,7 @@ class MessageInputForm(View):
         
     @discord.ui.button(label="メッセージを入力する")
     async def input_callback(self,interaction:discord.Interaction,button:Button):
-        interaction.response.send_modal(InputModal())
+        interaction.response.send_modal(InputModal(self))
         
     # ここのroles_nameをgameからの参照に変えることはできない(デコレータではselfの参照ができないので)
     @discord.ui.select(options=list(map(lambda x:discord.SelectOption(label=x), roles_name)),
