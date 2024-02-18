@@ -315,10 +315,11 @@ class MessageInputForm(View):
     #HACK: 送信先が選択されるまでdisableにしたい/selectのcallback関数からアクセスする方法がわからない
     @discord.ui.button(label="送信する")
     async def button_callback(self,interaction:discord.Interaction,button:Button):
-        interaction.response.is_done(True)
         # 送信先が未選択 or メッセージ未記入 ならスルー
-        if self.address == "未選択": return
-        if self.content == "未入力": return
+        if self.address == "未選択" or self.content == "メッセージ未入力":
+            interaction.response.send_message(embed=GetErrorEmbed('未入力の項目があります'))
+            return
+        interaction.response.is_done()
         
         # 送信する
         for name in self.game.Roles.keys():
