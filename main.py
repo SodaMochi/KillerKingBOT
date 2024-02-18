@@ -86,20 +86,19 @@ class Player:
     
     # メッセージを送信 成功したらTrue -> 呼び出し側がReceiveMessageを続けて呼ぶ
     # 入力フォームから呼ばれる
-    async def SendMessage(self,address_role:str,content:str,is_reply:bool=False) -> bool:
+    async def SendMessage(self,address_role:str,content:str,is_reply:bool=False):
         if is_reply:
             if not address_role in self.replyable_roles:
                 await SendError(self.channel,'返信するには相手からメッセージを受け取っており、まだ返信していないことが必要です')
-                return False
+                raise Exception('invalid address')
             await SendSystemMessage(self.channel,'以下のメッセージを送信しました',headline=f'{self.role_name}から返信が届きました',content=content)
             self.replyable_roles.remove(address_role)
         else:
             if address_role in self.sent_roles:
                 await SendError(self.channel,'既にメッセージを送信済みの役職です')
-                return False
+                raise Exception('invalid address')
             await SendSystemMessage(self.channel,'以下のメッセージを送信しました',headline=f'{self.role_name}からメッセージが届きました',content=content)
             self.sent_roles.append(address_role)
-        return True
     
     # 受信側
     async def ReceiveMessage(self,sender_role:str,content:str,is_reply:bool=False):
@@ -321,11 +320,13 @@ class MessageInputForm(View):
         if self.content == "未入力": return
         
         # 送信する
-        # プレイヤーが2名いる状態の「クイーン」に送ると複数ログが出る
-        for name,role in self.game.Roles.items():
+        for name in self.game.Roles.keys():
             if name==self.address:
-                if await self.sender.SendMessage(self.address,self.content):
-                    await self.game.Players[self.game.Roles[name].player_name].ReceiveMessage(self.sender.role_name,self.content)
+                try: await self.sender.SendMessage(self.address,self.content)
+                except: return
+                for player_name in self.game.Roles[name].player_name:
+                    await self.game.Players[player_name].ReceiveMessage(self.sender.role_name,self.content)
+                return
         
     def GenerateInputStatus(self) -> discord.Embed:
         text = f"宛先: {self.address}\n\n{self.content}"
@@ -336,7 +337,7 @@ class MessageInputForm(View):
     
 # "メッセージを入力"するModal
 class InputModal(discord.ui.Modal,title='入力フォーム'):
-    ans = discord.ui.TextInput(label="メッセージ本文",style='paragraph')
+    ans = discord.ui.TextInput(label="メッセージ本文",style=discord.TextStyle.paragraph)
     def __init__(self,view:MessageInputForm):
         super().__init__(timeout=None)
         self.view:MessageInputForm = view
