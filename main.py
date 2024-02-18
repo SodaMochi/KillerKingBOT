@@ -219,12 +219,12 @@ class Game:
         self.phase = guild_data["phase"]
         self.time_in_game = guild_data["time_in_game"]
         
-        for name,role in self.Roles:
+        for role in self.Roles.values():
             data = guild_data["roles"][role.role_name]
             role.player_name = data["player_name"]
             role.remaining_ability_usage = data["remaining_ability_usage"]
             role.is_ability_blocked = data["is_ability_blocked"]
-        for player in self.Players:
+        for player in self.Players.values():
             data = guild_data["players"][player.player_name]
             player.role_name = data["role_name"]
             if data["channel_id"]:
