@@ -1,6 +1,6 @@
 {
     "1107957737754742856": {
-        "admin_id": null,
+        "admin_id": 1208661827416760350,
         "phase": "\u30b2\u30fc\u30e0\u958b\u59cb\u524d",
         "time_in_game": 0,
         "roles": {
@@ -58,13 +58,13 @@
         "players": {
             "\u685c\u59eb\u821e\u9999": {
                 "role_name": "\u30a8\u30fc\u30b9",
-                "channel_id": null,
+                "channel_id": 1208663996241158204,
                 "sent_roles": [],
                 "replyable_roles": []
             },
             "\u82b1\u6751\u5149\u8f1d": {
                 "role_name": "\u30af\u30e9\u30d6\u306e\uff13",
-                "channel_id": null,
+                "channel_id": 1208661098895777822,
                 "sent_roles": [],
                 "replyable_roles": []
             },

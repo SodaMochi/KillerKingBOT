@@ -238,6 +238,8 @@ class Game:
         
         if cmd=="set":
             await self.SetChannel(message.channel)
+        elif cmd=="save":
+            self.Save()
         
         author = ""
         if message.channel==self.loby: author = "loby"
@@ -253,7 +255,7 @@ class Game:
             # 本来はゲーム中コマンド
             
             # プレイヤー用コマンド
-            if cmd=="dm" or cmd=="DM": player.SendDM()
+            if cmd=="dm" or cmd=="DM": player.SendMessageInputForm(self)
             
     async def SetChannel(self,channel:discord.TextChannel):
         await SendSystemMessage(channel,"チャンネル名を入力してください(ゲームマスター用は「admin」、その他はプレイヤー名を入力)")
