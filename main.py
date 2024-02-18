@@ -22,8 +22,8 @@ with open('player.json') as f:
 # 現在オンラインのGame(guild -> Game)
 games = dict()
     
-# 役職名リスト
-roles_name = list(map(lambda x:x["name"], role_data))
+# 役職名リスト（ラベル用）
+roles_name = [item for item in role_data]
 
 class Role:
     #注意: 初期プレイヤー名はリストで渡す
