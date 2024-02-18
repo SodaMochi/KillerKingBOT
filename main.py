@@ -214,7 +214,8 @@ class Game:
     
     # セーブデータを読み込み、反映する
     def Load(self,guild_data:json):
-        self.admin.id = guild_data["admin_id"]
+        if guild_data["admin_id"]:
+            self.admin = client.get_channel(guild_data["admin_id"])
         self.phase = guild_data["phase"]
         self.time_in_game = guild_data["time_in_game"]
         
@@ -226,7 +227,8 @@ class Game:
         for player in self.Players:
             data = guild_data["players"][player.player_name]
             player.role_name = data["role_name"]
-            player.channel = client.get_channel(data["channel_id"])
+            if data["channel_id"]:
+                player.channel = client.get_channel(data["channel_id"])
             player.sent_roles = data["sent_roles"]
             player.replyable_roles = data["replyable_roles"]
     
@@ -344,7 +346,7 @@ async def VerifyGuild(message:discord.Message) -> Game:
             data = dict()
         # セーブデータがあるなら、ロードする
         if str(message.guild.id) in data.keys():
-            game.Load(data[message.guild.id]) 
+            game.Load(data[str(message.guild.id)]) 
             if game.phase == "ゲーム進行中":
                 await SendSystemMessage(game.loby,headline="ゲームを再開します")
             if game.phase == "ゲーム終了":
