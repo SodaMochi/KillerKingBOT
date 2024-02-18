@@ -79,19 +79,22 @@ class Player:
             await SendError(self.channel,'送信可能な宛先がありません')
             return
         
-        # 送信フォームを送信
+        # 入力フォームを送信
         view = MessageInputForm(game,self) # embed: 入力内容を表示    view: 入力ボタン、送信先選択、送信ボタン
         for role_name in self.sendable_roles:
             view.select_callback.add_option(discord.SelectOption(label=role_name))
         await self.channel.send(embed=view.GenerateInputStatus(),view=view)
         
-    async def SendReplyInputForm(self):
+    async def SendReplyInputForm(self,game):
         # Error: 送信可能な役職がない
         if not self.replyable_roles:
             await SendError(self.channel,'返信可能な宛先がありません')
             return
-        # TODO: ここで返信入力フォームを送信
-        return
+        
+        view = MessageInputForm(game,self,is_reply=True) 
+        for role_name in self.replyable_roles:
+            view.select_callback.add_option(discord.SelectOption(label=role_name))
+        await self.channel.send(embed=view.GenerateInputStatus(),view=view)
     
     # メッセージを送信可能か判定し、送信ステータスを更新する
     # 入力フォームから呼ばれる
@@ -302,14 +305,14 @@ class Game:
     discord.ui
 '''
 
-# Player.SendDMで用いる
-# ReplyInputFormを継承してつくる？
+# メッセージ入力フォーム: 
 class MessageInputForm(View):
-    def __init__(self,game:Game,sender:Player):
+    def __init__(self,game:Game,sender:Player,is_reply:bool=False):
         super().__init__(timeout=None)
         self.sender:Player = sender
         self.address:str = "未選択"
         self.content:str = "メッセージ未入力"
+        self.is_reply = is_reply
         # HACK: このクラスがGameを知っているのはどうなの？（送信先のRoleを得るため)
         self.game = game
         
@@ -334,12 +337,13 @@ class MessageInputForm(View):
         # 送信する
         for name in self.game.Roles.keys():
             if name==self.address:
-                try: self.sender.SendMessage(self.address,self.content)
+                try: 
+                    self.sender.SendMessage(self.address,self.content,self.is_reply)
                 except Exception:
                     await interaction.response.send_message(embed=GetErrorEmbed('送信できない宛先です'))
                     return
                 for player_name in self.game.Roles[name].player_name:
-                    await self.game.Players[player_name].ReceiveMessage(self.sender.role_name,self.content)
+                    await self.game.Players[player_name].ReceiveMessage(self.sender.role_name,self.content,self.is_reply)
                 await interaction.response.edit_message(embed=discord.Embed(title=f'以下のメッセージを送信しました',description=f'{self.sender.role_name}からメッセージが届きました\n\n{self.content}'))
         
     def GenerateInputStatus(self) -> discord.Embed:
