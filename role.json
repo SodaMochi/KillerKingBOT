@@ -1,5 +1,5 @@
 {
-    "Ace":{
+    "エース":{
         "name":"エース",
         "initial_player_name":["桜姫舞香"],
         "escape_condition":"ゲーム終了時にQが生存している、もしくは白骨死体を殺した犯人を当てる",
@@ -7,7 +7,7 @@
         "ability_usage_count":1,
         "ability_cooldown":0
     },
-    "Club3":{
+    "クラブの３":{
         "name":"クラブの３",
         "initial_player_name":["花村光輝"],
         "escape_condition":"ゲーム終了時に、脱出条件を満たしたプレイヤーと死んだプレイヤーが合わせて３人以上いる",
@@ -15,7 +15,7 @@
         "ability_usage_count":1,
         "ability_cooldown":0
     },
-    "Queen":{
+    "クイーン":{
         "name":"クイーン",
         "initial_player_name":["朝比奈ひな子","岩井紅音"],
         "escape_condition":"制限時間内に全役職の脱出条件を特定する",
@@ -23,7 +23,7 @@
         "ability_usage_count":3,
         "ability_cooldown":0
     },
-    "Spade2":{
+    "スペードの２":{
         "name":"スペードの２",
         "initial_player_name":["二宮杏奈"],
         "escape_condition":"制限時間内にQが死んでいる、もしくはGMの正体を暴く",
@@ -31,7 +31,7 @@
         "ability_usage_count":100,
         "ability_cooldown":90
     },
-    "Jack":{
+    "ジャック":{
         "name":"ジャック",
         "initial_player_name":["剣崎蘇芳"],
         "escape_condition":"ゲーム終了まで全員が生存している",
@@ -39,7 +39,7 @@
         "ability_usage_count":10,
         "ability_cooldown":0
     },
-    "King":{
+    "キング":{
         "name":"キング",
         "initial_player_name":["土岐いちか"],
         "escape_condition":"制限時間内にプレイヤーを1人殺害する",
@@ -47,7 +47,7 @@
         "ability_usage_count":1,
         "ability_cooldown":90
     },
-    "Joker":{
+    "ジョーカー":{
         "name":"ジョーカー",
         "initial_player_name":["海山月正"],
         "escape_condition":"",
