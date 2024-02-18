@@ -209,7 +209,7 @@ class Game:
             except:
                 save_data = dict()
         with open('save_data.json','w') as f:
-            save_data[self.loby.guild.id] = save
+            save_data[str(self.loby.guild.id)] = save
             json.dump(save_data,f,indent=4)
     
     # セーブデータを読み込み、反映する
@@ -343,8 +343,7 @@ async def VerifyGuild(message:discord.Message) -> Game:
         except:
             data = dict()
         # セーブデータがあるなら、ロードする
-        print(data.keys()) #debug
-        if message.guild.id in data:
+        if str(message.guild.id) in data.keys():
             game.Load(data[message.guild.id]) 
             if game.phase == "ゲーム進行中":
                 await SendSystemMessage(game.loby,headline="ゲームを再開します")
