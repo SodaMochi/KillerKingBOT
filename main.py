@@ -22,10 +22,19 @@ with open('player.json') as f:
     
 # 現在オンラインのGame(guild -> Game)
 games = dict()
+
+# 名前の入力に対して、表記揺れから正規表現に直す
+def DefineNameVariants(name_input:str) -> str:
+    for name,player in player_data.items():
+        if name_input in player["name_variants"]: 
+            return name
+    return False
     
 # 役職名リスト（ラベル用）
-roles_name = [item for item in role_data]
-
+#roles_name = [item for item in role_data]
+'''
+    Role, Player
+'''
 class Role:
     #注意: 初期プレイヤー名はリストで渡す
     def __init__(self,role_name:str,player_names:str,ability_usage:int):
@@ -33,7 +42,6 @@ class Role:
         self.player_name:list = player_names
         self.remaining_ability_usage:int = ability_usage #能力使用回数
         #self.answer_status = list()
-        self.is_ability_blocked:bool = False #エースの妨害を受けているか/能力入れ替えでリセット
         
     #ヘルプメッセージを(項目:本文)の辞書で返す
     #Spade2(能力の残り使用回数->無制限), Joker(脱出条件)はオーバーライドする
@@ -46,6 +54,10 @@ class Role:
         if self.is_ability_blocked: res["備考"] = "能力の使用が妨害されている"
         return res
     
+    # 能力のある役職はオーバーライドする
+    async def UseAbility(self):
+        return False
+    
 class Player:
     def __init__(self,player_name:str,role_name:str):
         self.player_name:str = player_name
@@ -54,6 +66,7 @@ class Player:
         self.sendable_roles = [item for item in role_data]
         self.replyable_roles = list()
         self.waiting_embed:discord.Message = None #入力待ち中にコマンドを入力されたときに処理を中断する用
+        self.is_ability_blocked:bool = False #エースの妨害を受けているか/能力入れ替えでリセット
         
     #ヘルプメッセージを(項目:本文)の辞書で返す
     def GetHelpMessage(self) -> dict:
@@ -115,13 +128,29 @@ class Player:
         else:
             await self.channel.send(embed=discord.Embed(title=f'{sender_role}からメッセージが届きました',description=f'(!reply で返信できます)\n\n{content}',color=0x7B68EE))
             self.replyable_roles.append(sender_role)
+ 
+'''
+    Role, Player の派生クラス
+'''
+class Ace(Role):
+    async def UseAbility(self,channel:discord.TextChannel,game):
+        if self.remaining_ability_usage<=0:
+            await SendError(channel,'能力の使用回数が残っていません')
+            return
+        await SendSystemMessage(channel,'対象の名前を入力してください')
+        res = await WaitForResponse(channel)
+        res = DefineNameVariants(res)
+        if res=="帝秀一" or not res:
+            await SendError(channel,'対象の人物は選択できません')
+            return
         
-# ゲーム内の「DM」とその「返信」のフォーマット
-def GetMessageEmbed(sender:str,content:str):
-    return discord.Embed(title=f'{sender}からメッセージが届きました',description=content,color=0x7B68EE)
-def GetReplyEmbed(sender:str,content:str):
-    return discord.Embed(title=f'{sender}から返信が届きました',description=f'(!reply で返信できます)\n\n{content}',color=0x7B68EE)
-
+        if self.remaining_ability_usage<=0:
+            await SendError(channel,'能力の使用回数が残っていません')
+            return
+        game.Players[res].is_ability_blocked = True
+        self.remaining_ability_usage -= 1
+        await SendSystemMessage(channel,f'{res}の能力使用を妨害しています...')
+            
         
 '''
     ユーザーとのやり取り
@@ -167,7 +196,8 @@ class Game:
         self.time_in_game = 0
         
         for name,role in role_data.items():
-            self.Roles[name] = Role(name,role["initial_player_name"],role["ability_usage_count"])
+            if name=="エース": Ace(name,role["initial_player_name"],role["ability_usage_count"])
+            else: self.Roles[name] = Role(name,role["initial_player_name"],role["ability_usage_count"])
         for name,player in player_data.items():
             self.Players[name] = Player(name,player["initial_role"])
           
@@ -188,7 +218,6 @@ class Game:
             d = dict()
             d["player_name"] = role.player_name
             d["remaining_ability_usage"] = role.remaining_ability_usage
-            d["is_ability_blocked"] = role.is_ability_blocked
             roles[role.role_name] = d
         save["roles"] = roles
         
@@ -202,6 +231,7 @@ class Game:
                 d["channel_id"] = None
             d["sendable_roles"] = player.sendable_roles
             d["replyable_roles"] = player.replyable_roles
+            d["is_ability_blocked"] = player.is_ability_blocked
             players[player.player_name] = d
         save["players"] = players
         
@@ -227,7 +257,6 @@ class Game:
             data = guild_data["roles"][role.role_name]
             role.player_name = data["player_name"]
             role.remaining_ability_usage = data["remaining_ability_usage"]
-            role.is_ability_blocked = data["is_ability_blocked"]
         for player in self.Players.values():
             data = guild_data["players"][player.player_name]
             player.role_name = data["role_name"]
@@ -235,6 +264,7 @@ class Game:
                 player.channel = client.get_channel(data["channel_id"])
             player.sendable_roles = data["sendable_roles"]
             player.replyable_roles = data["replyable_roles"]
+            player.is_ability_blocked = data["is_ability_blocked"]
     
     async def Interpret(self,message:discord.Message):
         if not message.content.startswith("!"): return
@@ -282,11 +312,10 @@ class Game:
             self.loby = channel
             await SendSystemMessage(channel,"lobyを設定しました")
             return
-        for name,player in player_data.items():
-            if res in player["name_variants"]: 
-                self.Players[name].channel = channel
-                await SendSystemMessage(channel,f"{name}のチャンネルを設定しました")
-                return
+        name = DefineNameVariants(res)
+        if name:
+            await SendSystemMessage(channel,f"{name}のチャンネルを設定しました")
+            return
         await SendError(channel,"該当のチャンネル名が見つかりません\n漢字、ひらがな、名字、名前、フルネームのいずれかで入力してください")
         
     # チャンネルが全て設定済みかどうか
