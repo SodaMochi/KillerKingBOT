@@ -325,7 +325,10 @@ async def VerifyGuild(message:discord.Message) -> Game:
     game = Game(message.channel)
     games[message.guild] = game
     with open('save_data.json') as f:
-        data = json.load(f)
+        try:
+            data = json.load(f)
+        except:
+            data = dict()
         # セーブデータがあるなら、ロードする
         if message.guild.id in data:
             game.Load(data[message.guild.id]) 
