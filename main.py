@@ -317,7 +317,7 @@ class MessageInputForm(View):
     async def button_callback(self,interaction:discord.Interaction,button:Button):
         # 送信先が未選択 or メッセージ未記入 ならスルー
         if self.address == "未選択" or self.content == "メッセージ未入力":
-            interaction.response.send_message(embed=GetErrorEmbed('未入力の項目があります'))
+            await interaction.response.send_message(embed=GetErrorEmbed('未入力の項目があります'))
             return
         interaction.response.is_done()
         
