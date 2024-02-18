@@ -93,6 +93,7 @@ class Player:
             self.replyable_roles.remove(address_role)
         else:
             if address_role in self.sent_roles:
+                print(address_role,self.sent_roles)
                 raise Exception('invalid address')
             self.sent_roles.append(address_role)
     
@@ -239,7 +240,6 @@ class Game:
         elif message.channel==self.admin: author = "admin"
         elif message.channel in map(lambda x:x.channel, self.Players.values()): author = "player"
         if not author: return
-        print(author) #debug
         
         if author=="player":
             for person in self.Players.values():
