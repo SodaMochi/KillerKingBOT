@@ -237,7 +237,7 @@ class Game:
         if cmd=="set":
             await self.SetChannel(message.channel)
         
-        author:str
+        author = ""
         if message.channel==self.loby: author = "loby"
         elif message.channel==self.admin: author = "admin"
         elif message.channel in map(lambda x:x.channel, self.Players.values()): author = "player"
