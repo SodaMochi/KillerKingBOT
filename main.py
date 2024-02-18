@@ -343,7 +343,7 @@ async def VerifyGuild(message:discord.Message) -> Game:
         except:
             data = dict()
         # セーブデータがあるなら、ロードする
-        print(data) #debug
+        print(data.keys()) #debug
         if message.guild.id in data:
             game.Load(data[message.guild.id]) 
             if game.phase == "ゲーム進行中":
