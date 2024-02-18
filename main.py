@@ -173,6 +173,7 @@ class Game:
     def Save(self):
         save = dict()
         # Gameのデータ
+        save["loby"] = self.loby.id
         if self.admin:
             save["admin_id"] = self.admin.id
         else:
@@ -214,6 +215,7 @@ class Game:
     
     # セーブデータを読み込み、反映する
     def Load(self,guild_data:json):
+        self.loby = client.get_channel(guild_data["loby"])
         if guild_data["admin_id"]:
             self.admin = client.get_channel(guild_data["admin_id"])
         self.phase = guild_data["phase"]
@@ -258,11 +260,25 @@ class Game:
             if cmd=="dm" or cmd=="DM": await player.SendMessageInputForm(self)
             
     async def SetChannel(self,channel:discord.TextChannel):
+        # 既に割当済み
+        occupied = ''
+        if channel==self.admin: occupied = 'admin'
+        elif channel==self.loby: occupied = 'loby'
+        for player in self.Players.values():
+            if channel==player.channel: occupied = player.player_name
+        if occupied:
+            await SendError(channel,f'このチャンネルは既に{occupied}として登録されています。先に新しい{occupied}のチャンネルを登録してください')
+            return
+        
         await SendSystemMessage(channel,"チャンネル名を入力してください(ゲームマスター用は「admin」、その他はプレイヤー名を入力)")
         res = await WaitForResponse(channel)
         if res=="admin" or res=="Admin" or res=="ADMIN":
             self.admin = channel
             await SendSystemMessage(channel,"adminチャンネルを設定しました")
+            return
+        if res=="loby" or res=="Loby" or res=="LOBY":
+            self.loby = channel
+            await SendSystemMessage(channel,"lobyを設定しました")
             return
         for name,player in player_data.items():
             if res in player["name_variants"]: 
@@ -350,12 +366,13 @@ async def VerifyGuild(message:discord.Message) -> Game:
         if str(message.guild.id) in data.keys():
             game.Load(data[str(message.guild.id)]) 
             if game.phase == "ゲーム進行中":
+                # TODO: チャンネルが全て存在しているかチェック
                 await SendSystemMessage(game.loby,headline="ゲームを再開します")
             if game.phase == "ゲーム終了":
                 await SendSystemMessage(game.loby,headline="ゲームが既に終了しています",content="新規ゲームを始める場合は「!start」を入力してください")
         else:
             await SendSystemMessage(game.loby,headline="新規ゲームデータを作成しました")
-    game.Save()
+            game.Save()
     return game
 
 # TODO: ゲームデータを削除する関数
