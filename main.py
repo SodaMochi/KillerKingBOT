@@ -164,10 +164,10 @@ class Game:
         self.phase = "ゲーム開始前"
         self.time_in_game = 0
         
-        for role in role_data:
-            self.Roles[role["name"]] = Role(role["name"],role["initial_player_name"],role["ability_usage_count"])
-        for player in player_data:
-            self.Players[player["name"]] = Player(player["name"],player["initial_role"])
+        for name,role in role_data:
+            self.Roles[name] = Role(name,role["initial_player_name"],role["ability_usage_count"])
+        for name,player in player_data:
+            self.Players[name] = Player(name,player["initial_role"])
           
     # セーブデータをファイルに書き込む(BOT再起動時にデータを持ち越すため)  
     def Save(self):
