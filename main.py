@@ -350,7 +350,7 @@ async def on_ready():
 @client.event
 async def on_message(message:discord.Message):
     if message.author.bot: return
-    game = VerifyGuild(message)
+    game = await VerifyGuild(message)
     
     #コマンドの解釈・実行
     await game.Interpret(message)
