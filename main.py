@@ -242,6 +242,7 @@ class Game:
             await self.SetChannel(message.channel)
         elif cmd=="save":
             self.Save()
+            await SendSystemMessage(message.channel,'進行状況を保存しました')
         
         author = ""
         if message.channel==self.loby: author = "loby"
@@ -329,7 +330,7 @@ class MessageInputForm(View):
     def GenerateInputStatus(self) -> discord.Embed:
         text = f"宛先: {self.address}\n\n{self.content}"
         embed = discord.Embed(title="メッセージ編集フォーム",color=0x7B68EE)
-        embed.add_field(value=text)
+        embed.add_field(name='',value=text)
         return embed
     
     
