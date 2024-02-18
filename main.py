@@ -335,8 +335,8 @@ class MessageInputForm(View):
     
     
 # "メッセージを入力"するModal
-class InputModal(discord.ui.Modal):
-    ans = discord.ui.TextInput(label="メッセージ")
+class InputModal(discord.ui.Modal,title='入力フォーム'):
+    ans = discord.ui.TextInput(label="メッセージ本文")
     def __init__(self,view:MessageInputForm):
         super().__init__(timeout=None)
         self.view:MessageInputForm = view
