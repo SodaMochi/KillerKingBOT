@@ -84,28 +84,24 @@ class Player:
     async def SendReplyInputForm(self):
         return
     
-    # メッセージを送信 成功したらTrue -> 呼び出し側がReceiveMessageを続けて呼ぶ
+    # メッセージを送信可能か判定し、送信ステータスを更新する
     # 入力フォームから呼ばれる
-    async def SendMessage(self,address_role:str,content:str,is_reply:bool=False):
+    def SendMessage(self,address_role:str,content:str,is_reply:bool=False):
         if is_reply:
             if not address_role in self.replyable_roles:
-                await SendError(self.channel,'返信するには相手からメッセージを受け取っており、まだ返信していないことが必要です')
                 raise Exception('invalid address')
-            await SendSystemMessage(self.channel,'以下のメッセージを送信しました',headline=f'{self.role_name}から返信が届きました',content=content)
             self.replyable_roles.remove(address_role)
         else:
             if address_role in self.sent_roles:
-                await SendError(self.channel,'既にメッセージを送信済みの役職です')
                 raise Exception('invalid address')
-            await SendSystemMessage(self.channel,'以下のメッセージを送信しました',headline=f'{self.role_name}からメッセージが届きました',content=content)
             self.sent_roles.append(address_role)
     
     # 受信側
     async def ReceiveMessage(self,sender_role:str,content:str,is_reply:bool=False):
         if is_reply:
-            await SendCustumMessage(self.channel,title=f'{sender_role}から返信が届きました',content=content,color=0x7B68EE)
+            await self.channel.send(embed=discord.Embed(title=f'{sender_role}から返信が届きました',description=content,color=0x7B68EE))
         else:
-            await SendCustumMessage(self.channel,title=f'{sender_role}からメッセージが届きました',content=f'(!reply で返信できます)\n\n{content}',color=0x7B68EE)
+            await self.channel.send(embed=discord.Embed(title=f'{sender_role}からメッセージが届きました',description=f'(!reply で返信できます)\n\n{content}',color=0x7B68EE))
             self.replyable_roles.append(sender_role)
         
 # ゲーム内の「DM」とその「返信」のフォーマット
@@ -142,11 +138,6 @@ async def SendError(textchannel:discord.TextChannel,content:str):
 def GetErrorEmbed(content:str):
     return discord.Embed(title='Error',description=content,color=0xFF0000)
 
-# その他カスタムメッセージ
-# 引数でチャンネル、タイトル、本文、色を指定
-async def SendCustumMessage(textchannel:discord.TextChannel,title:str,content:str,color:int):
-    embed = discord.Embed(title=title,description=content,color=color)
-    return await textchannel.send(embed=embed)
 '''
     ゲーム
 '''
@@ -319,15 +310,17 @@ class MessageInputForm(View):
         if self.address == "未選択" or self.content == "メッセージ未入力":
             await interaction.response.send_message(embed=GetErrorEmbed('未入力の項目があります'))
             return
-        interaction.response.is_done()
         
         # 送信する
         for name in self.game.Roles.keys():
             if name==self.address:
                 try: await self.sender.SendMessage(self.address,self.content)
-                except: return
+                except:
+                    await interaction.response.send_message(embed=GetErrorEmbed('送信できない宛先です'))
+                    return
                 for player_name in self.game.Roles[name].player_name:
                     await self.game.Players[player_name].ReceiveMessage(self.sender.role_name,self.content)
+                interaction.response.edit_message(embed=discord.Embed(title=f'以下のメッセージを送信しました',description=f'{self.sender.role_name}からメッセージが届きました\n\n{self.content}'))
                 return
         
     def GenerateInputStatus(self) -> discord.Embed:
