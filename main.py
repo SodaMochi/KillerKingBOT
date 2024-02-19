@@ -55,7 +55,7 @@ class Role:
         return res
     
     # 能力のある役職はオーバーライドする
-    async def UseAbility(self):
+    async def UseAbility(self,channel:discord.TextChannel,game):
         return False
     
 class Player:
@@ -290,7 +290,7 @@ class Game:
             
             # プレイヤー用コマンド
             if cmd=="dm" or cmd=="DM": await player.SendMessageInputForm(self)
-            if cmd=="use": await self.Roles[player.player_name].UseAbility(self)
+            if cmd=="use": await self.Roles[player.player_name].UseAbility(message.channel,self)
             
     async def SetChannel(self,channel:discord.TextChannel):
         # 既に割当済み
