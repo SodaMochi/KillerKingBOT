@@ -282,6 +282,8 @@ class Game:
         if message.channel==self.loby: author = "loby"
         elif message.channel==self.admin: author = "admin"
         elif message.channel in map(lambda x:x.channel, self.Players.values()): author = "player"
+        print(message.channel.id,self.Players["花村光輝"].channel.id)
+        print(f"author:{author}")
         if not author: return
         
         if author=="player":
