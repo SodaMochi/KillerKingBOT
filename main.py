@@ -56,6 +56,7 @@ class Role:
     
     # 能力のある役職はオーバーライドする
     async def UseAbility(self,channel:discord.TextChannel,game):
+        print("default ability called") #debug
         return False
     
 class Player:
@@ -134,6 +135,7 @@ class Player:
 '''
 class Ace(Role):
     async def UseAbility(self,channel:discord.TextChannel,game):
+        print("ace ability called") #debug
         if self.remaining_ability_usage<=0:
             await SendError(channel,'能力の使用回数が残っていません')
             return
