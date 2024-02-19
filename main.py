@@ -290,6 +290,7 @@ class Game:
             
             # プレイヤー用コマンド
             if cmd=="dm" or cmd=="DM": await player.SendMessageInputForm(self)
+            if cmd=="use": await self.Roles[player.player_name].UseAbility(self)
             
     async def SetChannel(self,channel:discord.TextChannel):
         # 既に割当済み
@@ -443,6 +444,7 @@ async def loop():
 @client.event
 async def on_ready():
     print("on_ready",discord.__version__)
+    loop.start() # 時間計測ループ
 @client.event
 async def on_message(message:discord.Message):
     if message.author.bot: return
@@ -450,6 +452,5 @@ async def on_message(message:discord.Message):
     game = await VerifyGuild(message)
     # コマンドの解釈・実行
     await game.Interpret(message)
-    
-client.run(TOKEN)
-loop.start()
+  
+client.run(TOKEN) # イベントループ
