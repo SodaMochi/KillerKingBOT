@@ -196,7 +196,7 @@ class Game:
         self.time_in_game = 0
         
         for name,role in role_data.items():
-            if name=="エース": Ace(name,role["initial_player_name"],role["ability_usage_count"])
+            if name=="エース": self.Roles[name] = Ace(name,role["initial_player_name"],role["ability_usage_count"])
             else: self.Roles[name] = Role(name,role["initial_player_name"],role["ability_usage_count"])
         for name,player in player_data.items():
             self.Players[name] = Player(name,player["initial_role"])
@@ -431,9 +431,9 @@ async def VerifyGuild(message:discord.Message) -> Game:
     実行
 '''
 # 進行中のゲームの時間を進める
+# 起動直後にも呼ばれるので、即座に経過時間1分になることに注意
 @tasks.loop(minutes=1)
 async def loop():
-    print("1ふん たちました")#debug
     for game in games.values():
         if game.phase=="ゲーム進行中":
             game.time_in_game += 1
