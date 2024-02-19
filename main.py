@@ -281,17 +281,16 @@ class Game:
         author = ""
         if message.channel==self.loby: author = "loby"
         elif message.channel==self.admin: author = "admin"
-        elif message.channel in map(lambda x:x.channel, self.Players.values()): author = "player"
-        print(message.channel,self.Players["花村光輝"].channel)
-        print(f"author:{author}")
+        for person in self.Players.values():
+            if message.channel==person.channel: author:Player = person
         if not author: return
         
-        if author=="player":
+        if type(author)==Player:
             for person in self.Players.values():
                 if message.channel==person.channel: player:Player = person
                 
             # 本来はゲーム中コマンド
-            
+            print(self.Roles) #debug
             # プレイヤー用コマンド
             if cmd=="dm" or cmd=="DM": await player.SendMessageInputForm(self)
             if cmd=="use": await self.Roles[player.player_name].UseAbility(message.channel,self)
