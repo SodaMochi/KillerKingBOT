@@ -319,6 +319,7 @@ class Game:
             return
         name = DefineNameVariants(res)
         if name:
+            self.Players[name].channel = channel
             await SendSystemMessage(channel,f"{name}のチャンネルを設定しました")
             return
         await SendError(channel,"該当のチャンネル名が見つかりません\n漢字、ひらがな、名字、名前、フルネームのいずれかで入力してください")
