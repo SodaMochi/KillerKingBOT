@@ -43,6 +43,7 @@ class Role:
         self.remaining_ability_usage:int = role_data[name]["ability_usage_count"] #能力使用回数
         self.is_ability_blocked:bool = False #エースの妨害を受けているか/能力入れ替えでリセット
         #self.answer_status = list()
+        print(self.name) #debug
         
     #ヘルプメッセージを(項目:本文)の辞書で返す
     #Spade2(能力の残り使用回数->無制限), Joker(脱出条件)はオーバーライドする
@@ -472,7 +473,8 @@ async def loop():
             # TODO: あとで書く 帝のメッセージと、能力解禁
             if game.time_in_game in [10,15,20,30]: return
             elif game.time_in_game==90: return
-    
+Role('エース','花村光輝')
+Game(None)
 @client.event
 async def on_ready():
     print("on_ready",discord.__version__)
