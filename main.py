@@ -35,45 +35,51 @@ def DefineNameVariants(name_input:str) -> str:
 '''
     Role, Player
 '''
+# 必ずPlayerに付随して生成される、ようにする？
 class Role:
-    #注意: 初期プレイヤー名はリストで渡す
-    def __init__(self,role_name:str,player_names:str,ability_usage:int):
-        self.role_name:str = role_name
-        self.player_name:list = player_names
-        self.remaining_ability_usage:int = ability_usage #能力使用回数
+    def __init__(self,name:str,player_name:str):
+        self.name:str = name
+        self.player_name:str = player_name
+        self.remaining_ability_usage:int = role_data[name]["ability_usage_count"] #能力使用回数
+        self.is_ability_blocked:bool = False #エースの妨害を受けているか/能力入れ替えでリセット
         #self.answer_status = list()
         
     #ヘルプメッセージを(項目:本文)の辞書で返す
     #Spade2(能力の残り使用回数->無制限), Joker(脱出条件)はオーバーライドする
     def GetHelpMessage(self) -> dict:
         res = dict()
-        res["役職"] = self.role_name
-        res["能力"] = role_data[self.role_name]["ability_description"]
+        res["役職"] = self.name
+        res["能力"] = role_data[self.name]["ability_description"]
         res["能力の残り使用回数"] = self.remaining_ability_usage
-        res["脱出条件"] = role_data[self.role_name]["escape_condition"]
+        res["脱出条件"] = role_data[self.name]["escape_condition"]
         if self.is_ability_blocked: res["備考"] = "能力の使用が妨害されている"
         return res
     
     # 能力のある役職はオーバーライドする
-    async def UseAbility(self,channel:discord.TextChannel,game):
-        print("default ability called") #debug
-        return False
+    # 発動条件を確認する 阻害されていると、使用回数を消費してエラーを返す
+    async def UseAbility(self,player,game):
+        if self.remaining_ability_usage <= 0:
+            raise Exception('能力の使用可能回数が残っていません')
+        if self.is_ability_blocked:
+            self.remaining_ability_usage -= 1
+            self.is_ability_blocked = False
+            raise Exception('能力の使用が妨害されています')
     
 class Player:
-    def __init__(self,player_name:str,role_name:str):
+    def __init__(self,player_name:str,role:Role):
         self.player_name:str = player_name
-        self.role_name:str = role_name
+        self.role:Role = role
         self.channel:discord.TextChannel = None
         self.sendable_roles = [item for item in role_data]
         self.replyable_roles = list()
         self.waiting_embed:discord.Message = None #入力待ち中にコマンドを入力されたときに処理を中断する用
-        self.is_ability_blocked:bool = False #エースの妨害を受けているか/能力入れ替えでリセット
         
     #ヘルプメッセージを(項目:本文)の辞書で返す
     def GetHelpMessage(self) -> dict:
         res = dict()
         res["あなたの名前"] = self.player_name
         res["DMを送信可能"] = ','.join(self.sendable_roles)
+        res["返信を送信可能"] = ','.join(self.replyable_roles)
         return res
     
     #現在実行中のView(Button,Select...)を中止し、エラーメッセージに差し替える
@@ -134,8 +140,9 @@ class Player:
     Role, Player の派生クラス
 '''
 class Ace(Role):
-    async def UseAbility(self,channel:discord.TextChannel,game):
-        print("ace ability called") #debug
+    # Halt: 名前を入力した一人の能力発動を一度だけ空打ちさせる
+    async def UseAbility(self,player:Player,game):
+        channel = player.channel
         if self.remaining_ability_usage<=0:
             await SendError(channel,'能力の使用回数が残っていません')
             return
@@ -149,10 +156,14 @@ class Ace(Role):
         if self.remaining_ability_usage<=0:
             await SendError(channel,'能力の使用回数が残っていません')
             return
-        game.Players[res].is_ability_blocked = True
+        game.Players[res].role.is_ability_blocked = True
         self.remaining_ability_usage -= 1
         await SendSystemMessage(channel,f'{res}の能力使用を妨害しています...')
-            
+class Club3(Role):
+    # Swap: 入力した二人の能力を入れ替え、使用回数と妨害状況をリセットする
+    async def UseAbility(self,player:Player,game):
+        channel = player.channel
+        return super().UseAbility(channel, game)   
         
 '''
     ユーザーとのやり取り
@@ -190,18 +201,24 @@ class Game:
         self.loby:discord.TextChannel = loby
         
         self.admin:discord.TextChannel = None
-        # {name : value}
-        self.Roles:dict = dict()
-        self.Players:dict = dict()
+        self.Players:dict = dict() # player_name -> Player
+        self.Roles:dict = dict() # role_name -> List[Player]
         # "ゲーム開始前" -> "ゲーム進行中" -> "ゲーム終了"
         self.phase = "ゲーム開始前"
         self.time_in_game = 0
         
-        for name,role in role_data.items():
-            if name=="エース": self.Roles[name] = Ace(name,role["initial_player_name"],role["ability_usage_count"])
-            else: self.Roles[name] = Role(name,role["initial_player_name"],role["ability_usage_count"])
         for name,player in player_data.items():
-            self.Players[name] = Player(name,player["initial_role"])
+            if player["initial_role"]=="エース": self.Players[name] = Player(name,Ace(player["initial_role"],name))
+            else: self.Players[name] = Player(name,Role(player["initial_role"],name))
+        for name,role in role_data.items():
+            self.Roles[name] = list()
+            for player_name in role["initial_player_name"].values():
+                self.Roles[name].append(self.Players[player_name])
+    
+    def GetPlayer(self,name:str) -> Player:
+        for player in self.Players:
+            if player.player_name == name: return player
+        return None
           
     # セーブデータをファイルに書き込む(BOT再起動時にデータを持ち越すため)  
     def Save(self):
@@ -214,26 +231,21 @@ class Game:
             save["admin_id"] = None
         save["phase"] = self.phase
         save["time_in_game"] = self.time_in_game    
-        # 各Player, Roleのデータ
-        roles = dict()
-        for role in self.Roles.values():
-            d = dict()
-            d["player_name"] = role.player_name
-            d["remaining_ability_usage"] = role.remaining_ability_usage
-            roles[role.role_name] = d
-        save["roles"] = roles
         
+        # 各Playerのデータ
         players = dict()
         for player in self.Players.values():
             d = dict()
-            d["role_name"] = player.role_name
+            role = player.role
+            d["role_name"] = role.name
+            d["remaining_ability_usage"] = role.remaining_ability_usage
+            d["is_ability_blocked"] = role.is_ability_blocked
             if player.channel:
                 d["channel_id"] = player.channel.id
             else:
                 d["channel_id"] = None
             d["sendable_roles"] = player.sendable_roles
             d["replyable_roles"] = player.replyable_roles
-            d["is_ability_blocked"] = player.is_ability_blocked
             players[player.player_name] = d
         save["players"] = players
         
@@ -255,6 +267,23 @@ class Game:
         self.phase = guild_data["phase"]
         self.time_in_game = guild_data["time_in_game"]
         
+        # Roles初期化
+        self.Roles = dict()
+        for player_name,data in guild_data["players"].items():
+            self.Roles[data["role_name"]].append(self.Players[player_name])
+            # ロールの初期化
+            if data["role_name"]=='エース': self.Players[player_name].role = Ace(data["role_name"],player_name)
+            else: self.Players[player_name].role = Role(data["role_name"],player_name)
+            # ロールの設定
+            self.Players[player_name].role.remaining_ability_usage = data["remaining_ability_usage"]
+            self.Players[player_name].role.is_ability_blocked = data["is_ability_blocked"]
+            
+            if data["channel_id"]:
+                self.Players[player_name].channel = client.get_channel(data["channel_id"])
+            self.Players[player_name].sendable_roles = data["sendable_roles"]
+            self.Players[player_name].replyable_roles = data["replyable_roles"]
+
+        '''
         for role in self.Roles.values():
             data = guild_data["roles"][role.role_name]
             role.player_name = data["player_name"]
@@ -267,6 +296,7 @@ class Game:
             player.sendable_roles = data["sendable_roles"]
             player.replyable_roles = data["replyable_roles"]
             player.is_ability_blocked = data["is_ability_blocked"]
+            '''
     
     async def Interpret(self,message:discord.Message):
         if not message.content.startswith("!"): return
@@ -290,10 +320,9 @@ class Game:
                 if message.channel==person.channel: player:Player = person
                 
             # 本来はゲーム中コマンド
-            print(self.Roles) #debug
             # プレイヤー用コマンド
             if cmd=="dm" or cmd=="DM": await player.SendMessageInputForm(self)
-            if cmd=="use": await self.Roles[player.role_name].UseAbility(message.channel,self)
+            if cmd=="use": await player.role.UseAbility(message.channel,self)
             
     async def SetChannel(self,channel:discord.TextChannel):
         # 既に割当済み
@@ -368,17 +397,16 @@ class MessageInputForm(View):
             await interaction.response.send_message(embed=GetErrorEmbed('未入力の項目があります'))
             return
         
-        # 送信する
-        for name in self.game.Roles.keys():
-            if name==self.address:
-                try: 
-                    self.sender.SendMessage(self.address,self.content,self.is_reply)
-                except Exception:
-                    await interaction.response.send_message(embed=GetErrorEmbed('送信できない宛先です'))
-                    return
-                for player_name in self.game.Roles[name].player_name:
-                    await self.game.Players[player_name].ReceiveMessage(self.sender.role_name,self.content,self.is_reply)
-                await interaction.response.edit_message(view=None,embed=discord.Embed(title=f'以下のメッセージを送信しました',description=f'{self.sender.role_name}からメッセージが届きました\n\n{self.content}'))
+        # 送信できるか確認
+        try: 
+            self.sender.SendMessage(self.address,self.content,self.is_reply)
+        except Exception:
+            await interaction.response.send_message(embed=GetErrorEmbed('送信できない宛先です'))
+            return
+        # 実行
+        for player in self.game.Players.values():
+            if player.role.name==self.address: await player.ReceiveMessage(self.sender.role_name,self.content,self.is_reply)
+        await interaction.response.edit_message(view=None,embed=discord.Embed(title=f'以下のメッセージを送信しました',description=f'{self.sender.role.name}からメッセージが届きました\n\n{self.content}'))
         
     def GenerateInputStatus(self) -> discord.Embed:
         text = f"宛先: {self.address}\n\n{self.content}"
