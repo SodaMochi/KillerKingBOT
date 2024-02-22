@@ -215,7 +215,9 @@ class Game:
                 continue
             if player["initial_role"]=="エース": self.Players[name] = Player(name,Ace(player["initial_role"],name))
             else: self.Players[name] = Player(name,Role(player["initial_role"],name))
-            self.Roles[player["initial_role"]].append(self.Players[name])
+            # Role項目の存在確認
+            if player["initial_role"] in self.Roles: self.Roles[player["initial_role"]].append(self.Players[name])
+            else: self.Roles[player["initial_role"]] = [self.Players[name]]
     
     def GetPlayer(self,name:str) -> Player:
         for player in self.Players:
