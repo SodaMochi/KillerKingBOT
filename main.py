@@ -238,8 +238,7 @@ class Game:
         
         # 各Playerのデータ
         players = dict()
-        print(self.Players)
-        print(self.Players['桜木舞香'])
+        print(self.Players['桜姫舞香'])
         for player in self.Players.values():
             print(type(player),type(player.role))
             d = dict()
@@ -478,8 +477,7 @@ async def loop():
             # TODO: あとで書く 帝のメッセージと、能力解禁
             if game.time_in_game in [10,15,20,30]: return
             elif game.time_in_game==90: return
-Role('エース','花村光輝')
-Game(None)
+
 @client.event
 async def on_ready():
     print("on_ready",discord.__version__)
