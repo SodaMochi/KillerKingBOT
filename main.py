@@ -338,6 +338,7 @@ class Game:
             # プレイヤー用コマンド
             if cmd=="dm" or cmd=="DM": await player.SendMessageInputForm(self)
             if cmd=="use": await player.role.UseAbility(message.channel,self)
+            if cmd=="help": await player.PrintHelpMessage()
             
     async def SetChannel(self,channel:discord.TextChannel):
         # 既に割当済み
