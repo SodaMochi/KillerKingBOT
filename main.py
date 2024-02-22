@@ -85,7 +85,7 @@ class Player:
         #information = ''
         for key,value in res.items():
             #information += f'{key}:    {value}\n'
-            embed.add_field(key,value)
+            embed.add_field(name=key,value=value)
         #embed.add_field(name='情報',value=information)
         cmd = '!help    ヘルプを表示\n!dm    DMを入力\n!reply    返信を入力\n!use    能力を持つ場合、発動する'
         embed.add_field(name='コマンド',value=cmd)
