@@ -238,13 +238,12 @@ class Game:
         
         # 各Playerのデータ
         players = dict()
-        print(self.Players['桜姫舞香'])
         for player in self.Players.values():
-            print(type(player),type(player.role))
             d = dict()
-            d["role_name"] = player.role.name
-            d["remaining_ability_usage"] = player.role.remaining_ability_usage
-            d["is_ability_blocked"] = player.role.is_ability_blocked
+            if player.role:
+                d["role_name"] = player.role.name
+                d["remaining_ability_usage"] = player.role.remaining_ability_usage
+                d["is_ability_blocked"] = player.role.is_ability_blocked
             if player.channel:
                 d["channel_id"] = player.channel.id
             else:
@@ -275,6 +274,13 @@ class Game:
         # Roles初期化
         self.Roles = dict()
         for player_name,data in guild_data["players"].items():
+            if data["channel_id"]: self.Players[player_name].channel = client.get_channel(data["channel_id"])
+            self.Players[player_name].sendable_roles = data["sendable_roles"]
+            self.Players[player_name].replyable_roles = data["replyable_roles"]
+            
+            # ロールなし
+            if player_name=='帝秀一': continue
+            
             self.Roles[data["role_name"]].append(self.Players[player_name])
             # ロールの初期化
             if data["role_name"]=='エース': self.Players[player_name].role = Ace(data["role_name"],player_name)
@@ -283,10 +289,6 @@ class Game:
             self.Players[player_name].role.remaining_ability_usage = data["remaining_ability_usage"]
             self.Players[player_name].role.is_ability_blocked = data["is_ability_blocked"]
             
-            if data["channel_id"]:
-                self.Players[player_name].channel = client.get_channel(data["channel_id"])
-            self.Players[player_name].sendable_roles = data["sendable_roles"]
-            self.Players[player_name].replyable_roles = data["replyable_roles"]
 
         '''
         for role in self.Roles.values():
