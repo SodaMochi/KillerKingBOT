@@ -209,12 +209,13 @@ class Game:
         self.time_in_game = 0
         
         for name,player in player_data.items():
+            # TODO: 帝のRoleを作ったら書き換える
+            if name=="帝秀一":
+                self.Players[name] = Player(name,None)
+                continue
             if player["initial_role"]=="エース": self.Players[name] = Player(name,Ace(player["initial_role"],name))
             else: self.Players[name] = Player(name,Role(player["initial_role"],name))
-        for name,role in role_data.items():
-            self.Roles[name] = list()
-            for player_name in role["initial_player_name"].values():
-                self.Roles[name].append(self.Players[player_name])
+            self.Roles[player["initial_role"]].append(self.Players[name])
     
     def GetPlayer(self,name:str) -> Player:
         for player in self.Players:
@@ -231,7 +232,7 @@ class Game:
         else:
             save["admin_id"] = None
         save["phase"] = self.phase
-        save["time_in_game"] = self.time_in_game    
+        save["time_in_game"] = self.time_in_game
         
         # 各Playerのデータ
         players = dict()
