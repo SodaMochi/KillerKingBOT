@@ -238,7 +238,10 @@ class Game:
         
         # 各Playerのデータ
         players = dict()
+        print(self.Players)
+        print(self.Players['桜木舞香'])
         for player in self.Players.values():
+            print(type(player),type(player.role))
             d = dict()
             d["role_name"] = player.role.name
             d["remaining_ability_usage"] = player.role.remaining_ability_usage
