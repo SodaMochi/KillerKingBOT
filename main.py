@@ -288,7 +288,7 @@ class Game:
             # ロールなし
             if player_name=='帝秀一': continue
             
-            if self.Roles[data["role_name"]]: self.Roles[data["role_name"]].append(self.Players[player_name])
+            if data["role_name"] in self.Roles: self.Roles[data["role_name"]].append(self.Players[player_name])
             else: self.Roles[data["role_name"]] = [self.Players[player_name]]
             # ロールの初期化
             if data["role_name"]=='エース': self.Players[player_name].role = Ace(data["role_name"],player_name)
