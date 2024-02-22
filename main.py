@@ -49,8 +49,8 @@ class Role:
     def GetHelpMessage(self) -> dict:
         res = dict()
         res["役職"] = self.name
-        res["能力"] = role_data[self.name]["ability_description"]
         res["能力の残り使用回数"] = self.remaining_ability_usage
+        res["能力"] = role_data[self.name]["ability_description"]
         res["脱出条件"] = role_data[self.name]["escape_condition"]
         if self.is_ability_blocked: res["備考"] = "能力の使用が妨害されている"
         return res
@@ -76,7 +76,8 @@ class Player:
         
     #ヘルプメッセージを(項目:本文)の辞書で返す
     async def PrintHelpMessage(self):
-        res = self.role.GetHelpMessage()
+        res = {"あなたの名前":self.player_name}
+        res.update(self.role.GetHelpMessage())
         res["あなたの名前"] = self.player_name
         res["DMを送信可能"] = ','.join(self.sendable_roles)
         res["返信を送信可能"] = ','.join(self.replyable_roles)
@@ -85,10 +86,11 @@ class Player:
         #information = ''
         for key,value in res.items():
             #information += f'{key}:    {value}\n'
-            embed.add_field(name=key,value=value)
+            if key in ['DMを送信可能','返信を送信可能','能力','脱出条件']: embed.add_field(name=key,value=value,inline=False)
+            else: embed.add_field(name=key,value=value)
         #embed.add_field(name='情報',value=information)
         cmd = '!help    ヘルプを表示\n!dm    DMを入力\n!reply    返信を入力\n!use    能力を持つ場合、発動する'
-        embed.add_field(name='コマンド',value=cmd)
+        embed.add_field(name='コマンド',value=cmd,inline=False)
         await self.channel.send(embed=embed)
     
     #現在実行中のView(Button,Select...)を中止し、エラーメッセージに差し替える
