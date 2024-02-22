@@ -43,7 +43,6 @@ class Role:
         self.remaining_ability_usage:int = role_data[name]["ability_usage_count"] #能力使用回数
         self.is_ability_blocked:bool = False #エースの妨害を受けているか/能力入れ替えでリセット
         #self.answer_status = list()
-        print(self.name) #debug
         
     #ヘルプメッセージを(項目:本文)の辞書で返す
     #Spade2(能力の残り使用回数->無制限), Joker(脱出条件)はオーバーライドする
@@ -76,12 +75,20 @@ class Player:
         self.waiting_embed:discord.Message = None #入力待ち中にコマンドを入力されたときに処理を中断する用
         
     #ヘルプメッセージを(項目:本文)の辞書で返す
-    def GetHelpMessage(self) -> dict:
-        res = dict()
+    async def PrintHelpMessage(self):
+        res = self.role.GetHelpMessage()
         res["あなたの名前"] = self.player_name
         res["DMを送信可能"] = ','.join(self.sendable_roles)
         res["返信を送信可能"] = ','.join(self.replyable_roles)
-        return res
+        
+        embed = discord.Embed(title='Help')
+        information = ''
+        for key,value in res.items():
+            information += f'{key}:    {value}\n'
+        embed.add_field(name='情報',value=information)
+        cmd = '!help    ヘルプを表示\n!dm    DMを入力\n!reply    返信を入力\n!use    能力を持つ場合、発動する'
+        embed.add_field(name='コマンド',value=cmd)
+        await self.channel.send(embed=embed)
     
     #現在実行中のView(Button,Select...)を中止し、エラーメッセージに差し替える
     def CancelView(self):
@@ -281,7 +288,8 @@ class Game:
             # ロールなし
             if player_name=='帝秀一': continue
             
-            self.Roles[data["role_name"]].append(self.Players[player_name])
+            if self.Roles[data["role_name"]]: self.Roles[data["role_name"]].append(self.Players[player_name])
+            else: self.Roles[data["role_name"]] = [self.Players[player_name]]
             # ロールの初期化
             if data["role_name"]=='エース': self.Players[player_name].role = Ace(data["role_name"],player_name)
             else: self.Players[player_name].role = Role(data["role_name"],player_name)
