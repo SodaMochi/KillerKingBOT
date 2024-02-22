@@ -240,10 +240,9 @@ class Game:
         players = dict()
         for player in self.Players.values():
             d = dict()
-            role = player.role
-            d["role_name"] = role.name
-            d["remaining_ability_usage"] = role.remaining_ability_usage
-            d["is_ability_blocked"] = role.is_ability_blocked
+            d["role_name"] = player.role.name
+            d["remaining_ability_usage"] = player.role.remaining_ability_usage
+            d["is_ability_blocked"] = player.role.is_ability_blocked
             if player.channel:
                 d["channel_id"] = player.channel.id
             else:
