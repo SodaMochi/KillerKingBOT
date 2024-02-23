@@ -1,18 +1,10 @@
 {
-    "エース":{
-        "name":"エース",
-        "initial_player_name":["桜姫舞香"],
-        "escape_condition":"ゲーム終了時にQが生存している、もしくは白骨死体を殺した犯人を当てる",
-        "ability_description":"ゲーム中に1度だけ、他プレイヤー1人の名前を入力することで、以降の能力の使用を無効にできる",
-        "ability_usage_count":1,
-        "ability_cooldown":0
-    },
-    "クラブの３":{
-        "name":"クラブの３",
-        "initial_player_name":["花村光輝"],
-        "escape_condition":"ゲーム終了時に、脱出条件を満たしたプレイヤーと死んだプレイヤーが合わせて３人以上いる",
-        "ability_description":"ゲーム中に1度だけ、他プレイヤー2人の名前を入力することで、2人の役職(脱出条件と特殊能力)を入れ替えることができる。死んだ人間は選択できるが、自分は選択できない",
-        "ability_usage_count":1,
+    "ジャック":{
+        "name":"ジャック",
+        "initial_player_name":["剣崎蘇芳"],
+        "escape_condition":"ゲーム終了まで全員が生存している",
+        "ability_description":"ゲーム中に10回まで「調査」ができる。調査項目は`!use`で確認できる",
+        "ability_usage_count":10,
         "ability_cooldown":0
     },
     "クイーン":{
@@ -23,6 +15,22 @@
         "ability_usage_count":3,
         "ability_cooldown":0
     },
+    "キング":{
+        "name":"キング",
+        "initial_player_name":["土岐いちか"],
+        "escape_condition":"制限時間内にプレイヤーを1人殺害する",
+        "ability_description":"ゲーム終了30分前から、殺したい人物の名前を入力することで1度だけ殺害できる。",
+        "ability_usage_count":1,
+        "ability_cooldown":90
+    },
+    "エース":{
+        "name":"エース",
+        "initial_player_name":["桜姫舞香"],
+        "escape_condition":"ゲーム終了時にQが生存している、もしくは白骨死体を殺した犯人を当てる",
+        "ability_description":"ゲーム中に1度だけ、他プレイヤー1人の名前を入力することで、以降の能力の使用を無効にできる",
+        "ability_usage_count":1,
+        "ability_cooldown":0
+    },
     "スペードの２":{
         "name":"スペードの２",
         "initial_player_name":["二宮杏奈"],
@@ -31,21 +39,13 @@
         "ability_usage_count":100,
         "ability_cooldown":90
     },
-    "ジャック":{
-        "name":"ジャック",
-        "initial_player_name":["剣崎蘇芳"],
-        "escape_condition":"ゲーム終了まで全員が生存している",
-        "ability_description":"ゲーム中に10回まで「調査」ができる。調査項目は`!use`で確認できる",
-        "ability_usage_count":10,
-        "ability_cooldown":0
-    },
-    "キング":{
-        "name":"キング",
-        "initial_player_name":["土岐いちか"],
-        "escape_condition":"制限時間内にプレイヤーを1人殺害する",
-        "ability_description":"ゲーム終了30分前から、殺したい人物の名前を入力することで1度だけ殺害できる。",
+    "クラブの３":{
+        "name":"クラブの３",
+        "initial_player_name":["花村光輝"],
+        "escape_condition":"ゲーム終了時に、脱出条件を満たしたプレイヤーと死んだプレイヤーが合わせて３人以上いる",
+        "ability_description":"ゲーム中に1度だけ、他プレイヤー2人の名前を入力することで、2人の役職(脱出条件と特殊能力)を入れ替えることができる。死んだ人間は選択できるが、自分は選択できない",
         "ability_usage_count":1,
-        "ability_cooldown":90
+        "ability_cooldown":0
     },
     "ジョーカー":{
         "name":"ジョーカー",

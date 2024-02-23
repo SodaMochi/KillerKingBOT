@@ -192,7 +192,7 @@ class Club3(Role):
             return
         target = list()
         # 2人の名前を入力させる(選択肢を知らせないため、手打ちしてもらう)
-        for i in range(2):
+        for i in (1,2):
             msg = await SendSystemMessage(player.channel,f'{i}人目の名前を入力してください')
             try:
                 res = await WaitForResponse(player.channel)
@@ -224,10 +224,48 @@ class Club3(Role):
         game.Players[target[0]].role = GetRole(game.Players[target[1]].role.name,target[0])
         game.Players[target[1]].role = GetRole(temp,target[1])
         # 変更通知
-        await SendSystemMessage(game.Players[target[0]].channel,'あなたの役職が変更されました\¥n!help で確認してください')
-        await SendSystemMessage(game.Players[target[1]].channel,'あなたの役職が変更されました\¥n!help で確認してください')
+        await SendSystemMessage(game.Players[target[0]].channel,'あなたの役職が変更されました\n!help で確認してください')
+        await SendSystemMessage(game.Players[target[1]].channel,'あなたの役職が変更されました\n!help で確認してください')
         await SendSystemMessage(player.channel,f'{target[0]}と{target[1]}の役職を入れ替えました')
-        player.role.remaining_ability_usage -= 1
+        self.remaining_ability_usage -= 1
+
+class Queen(Role):
+    def __init__(self,player_name:str):
+        super().__init__(self,player_name)
+        self.answer_status = dict()
+        
+    async def Answer(slef):
+        return
+    
+    async def UseAbility(self, player:Player, game):
+        await player.CancelView()
+        try:
+            await super().UseAbility(player,game)
+        except Exception as e:
+            await SendError(player.channel,e)
+            return
+        msg = await SendSystemMessage(player.channel,'対象の名前を入力してください')
+        try:
+            res = await WaitForResponse(player.channel)
+        except:
+            msg.edit(embed=GetErrorEmbed('中断しました'))
+            return
+        res = DefineNameVariants(res)
+        if res=="帝秀一" or not res:
+            await SendError(player.channel,'対象の人物は選択できません')
+            return
+        #もういちどチェック
+        try:
+            await super().UseAbility(player,game)
+        except Exception as e:
+            await SendError(player.channel,e)
+            return
+        embed = discord.Embed(title=f'{res}の情報')
+        embed.add_field(name='役職',value=game.Players[res].role.name,inline=False)
+        embed.add_field(name='脱出条件',value=role_data[game.Players[res].role.name]['escape_condition'],inline=False)
+        await player.channel.send(embed=embed)
+        self.remaining_ability_usage -= 1
+
 '''
     ユーザーとのやり取りなど
 '''
@@ -259,6 +297,7 @@ def GetErrorEmbed(content:str):
 def GetRole(role_name:str,player_name:str):
     if role_name=='エース': return Ace(role_name,player_name)
     elif role_name=='クラブの３': return Club3(role_name,player_name)
+    elif role_name=='クイーン': return Queen(role_name,player_name)
     return Role(role_name,player_name)
 
 '''
