@@ -158,7 +158,7 @@ class Ace(Role):
         await player.CancelView()
         channel = player.channel
         try:
-            super().UseAbility(player,game)
+            await super().UseAbility(player,game)
         except Exception as e:
             await SendError(player.channel,e)
             return
@@ -174,7 +174,7 @@ class Ace(Role):
             return
         # 入力後、もういちど条件チェック
         try:
-            super().UseAbility(player,game)
+            await super().UseAbility(player,game)
         except Exception as e:
             await SendError(player.channel,e)
             return
@@ -186,7 +186,7 @@ class Club3(Role):
     async def UseAbility(self,player:Player,game):
         await player.CancelView()
         try:
-            super().UseAbility(player,game)
+            await super().UseAbility(player,game)
         except Exception as e:
             await SendError(player.channel,e)
             return
@@ -212,7 +212,7 @@ class Club3(Role):
             return
         # 入力後の再チェック
         try:
-            super().UseAbility(player,game)
+            await super().UseAbility(player,game)
         except Exception as e:
             await SendError(player.channel,e)
             return
