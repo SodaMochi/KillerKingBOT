@@ -75,8 +75,8 @@ class Player:
         self.waiting_embed:discord.Message = None #入力待ち中にコマンドを入力されたときに処理を中断する用
         
     #ヘルプメッセージを(項目:本文)の辞書で返す
-    async def PrintHelpMessage(self):
-        res = {"あなたの名前":self.player_name}
+    async def PrintHelpMessage(self,game):
+        res = {"あなたの名前":self.player_name,"ゲーム経過時間":f'{game.time_in_game}分'}
         res.update(self.role.GetHelpMessage())
         res["あなたの名前"] = self.player_name
         res["DMを送信可能"] = ','.join(self.sendable_roles)
@@ -376,8 +376,8 @@ class Game:
             # 本来はゲーム中コマンド
             # プレイヤー用コマンド
             if cmd=="dm" or cmd=="DM": await player.SendMessageInputForm(self)
-            if cmd=="use": await player.role.UseAbility(message.channel,self)
-            if cmd=="help": await player.PrintHelpMessage()
+            if cmd=="use": await player.role.UseAbility(player,self)
+            if cmd=="help": await player.PrintHelpMessage(self)
             
     async def SetChannel(self,channel:discord.TextChannel):
         # 既に割当済み
