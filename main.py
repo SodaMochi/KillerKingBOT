@@ -1,6 +1,5 @@
 import json
 import discord
-import re
 from discord.interactions import Interaction
 from discord.ui import Select,View,Button
 from discord.ext import tasks
@@ -568,9 +567,9 @@ class Game:
     async def PrintAdminHelp(self):
         in_game = {"kill":"プレイヤーを死亡させる",
                 "change":"（トラブル対応用）DM送信状況や能力使用回数などを手動で変更する",
-                "end":"ゲームを終了し、ゲーム終了時の質問に回答させる",
-                "key":"プレイヤーに脱出パスワードを送信する"}
-        anytime = {"set":"チャンネルを設定する",
+                "end":"ゲームを終了し、ゲーム終了時の質問に回答させる"}
+        anytime = {"key":"プレイヤーに脱出パスワードを送信する",
+                   "set":"チャンネルを設定する",
                    "save":"ゲームデータを保存する(BOTがオフラインになっても保存されます)",
                    "delete":"ゲームデータを削除する",
                    "help":"現在の状況、コマンドを確認する"}
@@ -593,6 +592,13 @@ class Game:
         self.Players[res].vital = 'dead'
         await SendSystemMessage(self.admin,f'{res}は死亡しました')
         await SendSystemMessage(self.Players[res].channel,'あなたは死亡しました')
+        
+    async def GivePassword(self):
+        select = ViewForPassword(self)
+        for player_name in self.Players.keys():
+            if player_name=="岩井紅音" or player_name=="帝秀一": continue #パスワードを受け取る権利がない
+            select.callback.add_option(label=player_name)
+        await self.admin.send(content='パスワードの送信先を選んでください',view=select)
         
     async def TriggerTimedEvent(self):
         # 帝の思い出しメッセージ
@@ -732,6 +738,7 @@ class Game:
         # adminコマンド
         if author=='admin':
             if cmd=='help': await self.PrintAdminHelp()
+            elif cmd=='key': await self.GivePassword()
             
             # ゲーム中
             if self.phase!="ゲーム進行中": return
@@ -1022,6 +1029,24 @@ class ViewForQueen(View):
             embed.add_field(name=key,value=value,inline=False)
         return embed
 
+# optionsはadd_optionで渡す
+class ViewForPassword(View):
+    def __init__(self,game:Game):
+        super().__init__(timeout=None)
+        self.game = game
+    @discord.ui.select(placeholder="ここを押して選択")
+    async def callback(self,interaction:Interaction,select:Select):
+        date = datetime.datetime.now()
+        d = {"桜姫舞香":"0310",
+             "花村光輝":"0810",
+             "朝比奈ひな子":"0301",
+             "二宮杏奈":"0503",
+             "剣崎蘇芳":str(date.month).zfill(2)+str(date.day).zfill(2),
+             "土岐いちか":"8888",
+             "海山月正":"9999"}
+        await SendSystemMessage(self.game.Players[select.values[0]].channel,headline='パスワードを獲得しました',content=d[select.values[0]])
+        await interaction.response.edit_message(embed=discord.Embed(description=f'{select.values[0]}にパスワード{d[select.values[0]]}を送信しました'))
+            
 '''
     サーバーの識別
 '''
