@@ -19,6 +19,8 @@ with open('role.json') as f:
     role_data = json.load(f)
 with open('player.json') as f:
     player_data = json.load(f)
+with open('text_data.json') as f:
+    text_data = json.load(f)
     
 # 現在オンラインのGame(guild -> Game)
 games = dict()
@@ -58,11 +60,11 @@ class Role:
     # 能力のある役職はオーバーライドする
     # 発動条件を確認する 阻害されていると、使用回数を消費してエラーを返す
     async def UseAbility(self,player,game):
+        if role_data[self.name]['ability_cooldown']>game.time_in_game:
+            raise Exception('まだ能力が使用可能な時間ではありません')
         if self.remaining_ability_usage <= 0:
             raise Exception('能力の使用可能回数が残っていません')
         if self.is_ability_blocked:
-            self.remaining_ability_usage -= 1
-            self.is_ability_blocked = False
             raise Exception('能力の使用が妨害されています')
     
 class Player:
@@ -72,13 +74,13 @@ class Player:
         self.channel:discord.TextChannel = None
         self.sendable_roles = [item for item in role_data]
         self.replyable_roles = list()
+        self.vital = 'alive' # or 'dead'
         self.waiting_embed:discord.Message = None #入力待ち中にコマンドを入力されたときに処理を中断する用
         
     #ヘルプメッセージを(項目:本文)の辞書で返す
     async def PrintHelpMessage(self,game):
         res = {"あなたの名前":self.player_name,"ゲーム経過時間":f'{game.time_in_game}分'}
         res.update(self.role.GetHelpMessage())
-        res["あなたの名前"] = self.player_name
         res["DMを送信可能"] = ','.join(self.sendable_roles)
         res["返信を送信可能"] = ','.join(self.replyable_roles)
         
@@ -90,6 +92,7 @@ class Player:
             else: embed.add_field(name=key,value=value)
         #embed.add_field(name='情報',value=information)
         cmd = '!help    ヘルプを表示\n!dm    DMを入力\n!reply    返信を入力\n!use    能力を持つ場合、発動する'
+        if self.role.name=="クイーン" or self.role.name=="ジョーカー": cmd += '\n!answer ゲーム中に回答すべき質問に答える'
         embed.add_field(name='コマンド',value=cmd,inline=False)
         await self.channel.send(embed=embed)
     
@@ -99,7 +102,7 @@ class Player:
         if self.waiting_embed==None: return
         #if self.waiting_embed==None: raise Exception("No active process found.")
         
-        await self.waiting_embed.edit(embed=GetErrorEmbed("中断しました"))
+        await self.waiting_embed.edit(embed=GetErrorEmbed("中断しました"),view=None)
         self.waiting_embed = None
         
     #「DM」を送るためのフォーム
@@ -114,8 +117,7 @@ class Player:
         view = MessageInputForm(game,self) # embed: 入力内容を表示    view: 入力ボタン、送信先選択、送信ボタン
         for role_name in self.sendable_roles:
             view.select_callback.add_option(label=role_name)
-        msg = await self.channel.send(embed=view.GenerateInputStatus(),view=view)
-        self.waiting_embed = msg
+        self.waiting_embed = await self.channel.send(embed=view.GenerateInputStatus(),view=view)
         
     async def SendReplyInputForm(self,game):
         # Error: 送信可能な役職がない
@@ -125,13 +127,12 @@ class Player:
         
         view = MessageInputForm(game,self,is_reply=True) 
         for role_name in self.replyable_roles:
-            view.select_callback.add_option(discord.SelectOption(label=role_name))
-        msg = await self.channel.send(embed=view.GenerateInputStatus(),view=view)
-        self.waiting_embed = msg
+            view.select_callback.add_option(label=role_name)
+        self.waiting_embed = await self.channel.send(embed=view.GenerateInputStatus(),view=view)
     
     # メッセージを送信可能か判定し、送信ステータスを更新する
     # 入力フォームから呼ばれる
-    def SendMessage(self,address_role:str,content:str,is_reply:bool=False):
+    def SendMessage(self,address_role:str,is_reply:bool=False):
         if is_reply:
             if not address_role in self.replyable_roles:
                 raise Exception('invalid address')
@@ -152,6 +153,42 @@ class Player:
 '''
     Role, Player の派生クラス
 '''
+# 土岐いちか
+class Doki(Player):
+    async def SendMessage(self, address_role: str,is_reply: bool = False):
+        if is_reply:
+            if not address_role in self.replyable_roles:
+                raise Exception('invalid address')
+            self.replyable_roles.remove(address_role)
+        else:
+            if not address_role in self.sendable_roles:
+                raise Exception('invalid address')
+            if address_role!='ジョーカー':
+                self.sendable_roles.remove(address_role)
+# 帝
+class Mikado(Player):
+    def __init__(self,player_name:str,role:Role):
+        super().__init__(player_name,role)
+        self.sendable_roles = ['不明な宛先']
+        
+    async def PrintHelpMessage(self, game):
+        res = {"あなたの名前":self.player_name,"ゲーム経過時間":f'{game.time_in_game}分'}
+        #res.update(self.role.GetHelpMessage())
+        res["DMを送信可能"] = ','.join(self.sendable_roles)
+        
+        embed = discord.Embed(title='Help')
+        for key,value in res.items():
+            if key in ['DMを送信可能','返信を送信可能','能力','脱出条件']: embed.add_field(name=key,value=value,inline=False)
+            else: embed.add_field(name=key,value=value)
+        cmd = '!help    ヘルプを表示\n!dm    DMを入力'
+        embed.add_field(name='コマンド',value=cmd,inline=False)
+        await self.channel.send(embed=embed)
+        return super().PrintHelpMessage(game)
+    def SendMessage(self,address_role:str,is_reply:bool=False):
+        if len(self.sendable_roles)<1:
+            raise Exception('invalid address')
+        self.sendable_roles = list()
+
 class Ace(Role):
     # Halt: 名前を入力した一人の能力発動を一度だけ空打ちさせる
     async def UseAbility(self,player:Player,game):
@@ -166,7 +203,7 @@ class Ace(Role):
         try:
             res = await WaitForResponse(channel)
         except:
-            msg.edit(embed=GetErrorEmbed('中断しました'))
+            await msg.edit(embed=GetErrorEmbed('中断しました'))
             return
         res = DefineNameVariants(res)
         if res=="帝秀一" or not res:
@@ -197,7 +234,7 @@ class Club3(Role):
             try:
                 res = await WaitForResponse(player.channel)
             except:
-                msg.edit(embed=GetErrorEmbed('中断しました'))
+                await msg.edit(embed=GetErrorEmbed('中断しました'))
                 return
             res = DefineNameVariants(res)
             if res=="帝秀一" or not res:
@@ -221,21 +258,29 @@ class Club3(Role):
         await game.Players[target[0]].CancelView()
         await game.Players[target[1]].CancelView()
         temp = game.Players[target[0]].role.name
-        game.Players[target[0]].role = GetRole(game.Players[target[1]].role.name,target[0])
-        game.Players[target[1]].role = GetRole(temp,target[1])
+        game.Players[target[0]].role = NewRole(game.Players[target[1]].role.name,target[0])
+        game.Players[target[1]].role = NewRole(temp,target[1])
         # 変更通知
         await SendSystemMessage(game.Players[target[0]].channel,'あなたの役職が変更されました\n!help で確認してください')
         await SendSystemMessage(game.Players[target[1]].channel,'あなたの役職が変更されました\n!help で確認してください')
         await SendSystemMessage(player.channel,f'{target[0]}と{target[1]}の役職を入れ替えました')
         self.remaining_ability_usage -= 1
-
 class Queen(Role):
-    def __init__(self,player_name:str):
-        super().__init__(self,player_name)
-        self.answer_status = dict()
-        
-    async def Answer(slef):
-        return
+    def __init__(self,name,player_name:str):
+        super().__init__(name,player_name)
+        self.answer_status = {'ジャック':'未入力',
+                              'クイーン':'制限時間内に全役職の脱出条件を特定する',
+                              'キング':'未入力',
+                              'エース':'未入力',
+                              'スペードの２':'未入力',
+                              'クラブの３':'未入力',
+                              'ジョーカー':'未入力'}
+    
+    # FIXME: ここで設定したwaiting_embedが関数外に出るとすぐNoneになる
+    async def Answer(self,game,player:Player):
+        if player.waiting_embed: await player.CancelView()
+        view = ViewForQueen(game,player)
+        player.waiting_embed = await player.channel.send(view=view,embed=view.GenerateInputStatus())
     
     async def UseAbility(self, player:Player, game):
         await player.CancelView()
@@ -248,7 +293,7 @@ class Queen(Role):
         try:
             res = await WaitForResponse(player.channel)
         except:
-            msg.edit(embed=GetErrorEmbed('中断しました'))
+            await msg.edit(embed=GetErrorEmbed('中断しました'))
             return
         res = DefineNameVariants(res)
         if res=="帝秀一" or not res:
@@ -262,10 +307,88 @@ class Queen(Role):
             return
         embed = discord.Embed(title=f'{res}の情報')
         embed.add_field(name='役職',value=game.Players[res].role.name,inline=False)
-        embed.add_field(name='脱出条件',value=role_data[game.Players[res].role.name]['escape_condition'],inline=False)
+        if game.Players[res].role.name=='ジョーカー': embed.add_field(name='脱出条件',value=game.joker_escape_condition,inline=False)
+        else: embed.add_field(name='脱出条件',value=role_data[game.Players[res].role.name]['escape_condition'],inline=False)
         await player.channel.send(embed=embed)
         self.remaining_ability_usage -= 1
-
+class Spade2(Role):
+    def GetHelpMessage(self) -> dict:
+        return super().GetHelpMessage().update({'能力の残り使用回数':'無制限'})
+    
+    async def UseAbility(self, player:Player, game):
+        await player.CancelView()
+        try:
+            await super().UseAbility(player,game)
+        except Exception as e:
+            await SendError(player.channel,e)
+            return
+        # 入力フォームを送信
+        view = AnswerInputForm(game,player,['対象の名前','役職','脱出条件'],f'{self.name}({player.player_name})の殺害リクエスト')
+        player.waiting_embed = await player.channel.send(embed=view.GenerateInputStatus(),view=view)
+class King(Role):
+    async def UseAbility(self, player:Player, game):
+        await player.CancelView()
+        try:
+            await super().UseAbility(player,game)
+        except Exception as e:
+            await SendError(player.channel,e)
+            return
+        await SendSystemMessage(player.channel,'対象の名前を入力してください')
+        msg = await SendSystemMessage(player.channel,'対象の名前を入力してください')
+        try:
+            res = await WaitForResponse(player.channel)
+        except:
+            await msg.edit(embed=GetErrorEmbed('中断しました'))
+            return
+        res = DefineNameVariants(res)
+        if not res: #自己解釈: 帝も対象になる
+            await SendError(player.channel,'不正な入力です')
+            return
+        # ダブルチェック
+        try:
+            await super().UseAbility(player,game)
+        except Exception as e:
+            await SendError(player.channel,e)
+            return
+        # 実行
+        await SendSystemMessage(game.admin,headline='キングからの殺害要請',description=f'対象:{res}')
+        await SendSystemMessage(player.channel,f'リクエストを送信しました\n対象:{res}')
+        self.remaining_ability_usage -= 1
+class Jack(Role):
+    async def UseAbility(self, player:Player, game):
+        await player.CancelView()
+        try:
+            await super().UseAbility(player,game)
+        except Exception as e:
+            await SendError(player.channel,e)
+            return
+        embed = discord.Embed(description=f'残り回数:{self.remaining_ability_usage}')
+        embed.add_field(name='選択項目',value='\n'.join(text_data['Jack_Ability']))
+        player.waiting_embed = await player.channel.send(view=ViewForJack(player),embed=embed)
+class Joker(Role):
+    def __init__(self,name:str,player_name:str):
+        super().__init__(name,player_name)
+        self.escape_condition:str = None
+        self.answer_status = {'ジャック':'未入力',
+                              'クイーン':'制限時間内に全役職の脱出条件を特定する',
+                              'キング':'未入力',
+                              'エース':'未入力',
+                              'スペードの２':'未入力',
+                              'クラブの３':'未入力',
+                              'ジョーカー':'未入力'}
+    
+    async def Answer(self,game,player:Player):
+        view = ViewForQueen(game,player)
+        player.waiting_embed = await player.channel.send(view=view,embed=view.GenerateInputStatus())
+    
+    async def UseAbility(self, player:Player, game):
+        await SendError(player.channel,'不正なコマンドです')
+        
+    def GetHelpMessage(self) -> dict:
+        d = super().GetHelpMessage()
+        d['脱出条件'] = self.escape_condition
+        return d
+    
 '''
     ユーザーとのやり取りなど
 '''
@@ -279,10 +402,11 @@ async def WaitForResponse(textchannel:discord.TextChannel):
 
 # 指定のテキストチャンネルに「System Message」を送る（ゲーム上の演出）
 # 後で編集可能にするため、返り値として送信メッセージのインスタンスを返す
-async def SendSystemMessage(textchannel:discord.TextChannel,description='',headline='',content=''):
+async def SendSystemMessage(textchannel:discord.TextChannel,description='',headline='',content='',mention:str=None):
     embed =  discord.Embed(title='System Message',description=description,color=0x4169E1)
     if content or headline: embed.add_field(name=headline,value=content)
-    return await textchannel.send(embed=embed)
+    if mention: return await textchannel.send(content=mention,embed=embed)
+    else: return await textchannel.send(embed=embed)
 
 # 指定のテキストチャンネルに「Error」を送る（ゲーム上の演出）
 # 後で編集可能にするため、返り値として送信メッセージのインスタンスを返す
@@ -294,11 +418,19 @@ def GetErrorEmbed(content:str):
     return discord.Embed(title='Error',description=content,color=0xFF0000)
 
 # 指定したロールの派生クラスを返す　なかったら素のロール
-def GetRole(role_name:str,player_name:str):
+def NewRole(role_name:str,player_name:str):
     if role_name=='エース': return Ace(role_name,player_name)
     elif role_name=='クラブの３': return Club3(role_name,player_name)
     elif role_name=='クイーン': return Queen(role_name,player_name)
+    elif role_name=='スペードの２': return Spade2(role_name,player_name)
+    elif role_name=='キング': return King(role_name,player_name)
+    elif role_name=='ジャック': return Jack(role_name,player_name)
+    elif role_name=='ジョーカー': return Joker(role_name,player_name)
     return Role(role_name,player_name)
+def NewPlayer(name:str,role:Role):
+    if name=='帝秀一': return Mikado(name,role)
+    elif name=='土岐いちか': return Doki(name,role)
+    return Player(name,role)
 
 '''
     ゲーム
@@ -314,14 +446,15 @@ class Game:
         # "ゲーム開始前" -> "ゲーム進行中" -> "ゲーム終了"
         self.phase = "ゲーム開始前"
         self.time_in_game = 0
+        #self.joker_escape_condition:str = None
         
         for name,player in player_data.items():
-            # TODO: 帝のRoleを作ったら書き換える
             if name=="帝秀一":
-                self.Players[name] = Player(name,None)
+                self.Players[name] = Mikado(name,None)
                 continue
-            self.Players[name] = Player(name,GetRole(player["initial_role"],name))
-            # Role項目の存在確認
+            self.Players[name] = NewPlayer(name,NewRole(player["initial_role"],name))
+            if name=="岩井紅音": self.Players[name].vital = "dead"
+            # Rolesにも追加
             if player["initial_role"] in self.Roles: self.Roles[player["initial_role"]].append(self.Players[name])
             else: self.Roles[player["initial_role"]] = [self.Players[name]]
           
@@ -336,6 +469,7 @@ class Game:
             save["admin_id"] = None
         save["phase"] = self.phase
         save["time_in_game"] = self.time_in_game
+        save["joker_escape_condition"] = self.Roles['ジョーカー'][0].role.escape_condition
         
         # 各Playerのデータ
         players = dict()
@@ -351,6 +485,7 @@ class Game:
                 d["channel_id"] = None
             d["sendable_roles"] = player.sendable_roles
             d["replyable_roles"] = player.replyable_roles
+            d["vital"] = player.vital
             players[player.player_name] = d
         save["players"] = players
         
@@ -378,6 +513,7 @@ class Game:
             if data["channel_id"]: self.Players[player_name].channel = client.get_channel(data["channel_id"])
             self.Players[player_name].sendable_roles = data["sendable_roles"]
             self.Players[player_name].replyable_roles = data["replyable_roles"]
+            self.Players[player_name].vital = data["vital"]
             
             # ロールなし
             if player_name=='帝秀一': continue
@@ -385,14 +521,192 @@ class Game:
             if data["role_name"] in self.Roles: self.Roles[data["role_name"]].append(self.Players[player_name])
             else: self.Roles[data["role_name"]] = [self.Players[player_name]]
             # ロールの初期化
-            self.Players[player_name].role = GetRole(data["role_name"],player_name)
+            self.Players[player_name].role = NewRole(data["role_name"],player_name)
             # ロールの設定
             self.Players[player_name].role.remaining_ability_usage = data["remaining_ability_usage"]
             self.Players[player_name].role.is_ability_blocked = data["is_ability_blocked"]
+        self.Roles['ジョーカー'][0].role.escape_condition = guild_data["joker_escape_condition"]
           
+    async def StartGame(self):
+        if self.phase!='ゲーム開始前': return
+        # チャンネル設定の確認
+        check = self.IsChannelReady()
+        if not check==True:
+            await SendError(self.admin,f'{", ".join(check)}が未設定です')
+            return
+        
+        # ジョーカーの脱出条件を設定
+        if not self.Roles['ジョーカー'][0].role.escape_condition:
+            await self.admin.send(content='ジョーカーのコピー先を選択してください',view=ViewForJoker(self))
+            return
+        
+        self.phase = 'ゲーム進行中'
+        await SendSystemMessage(self.loby,headline='ゲームを開始します',content='ゲーム内コマンドが使用可能になりました\n!help で確認してください',mention='@here')
+          
+    async def EndGame(self):
+        if self.time_in_game<120:
+            msg = await SendSystemMessage(self.admin,f'現在ゲーム開始から{self.time_in_game}分です。\n本当にゲームを終了させる場合は「yes」を送信してください')
+            try:
+                res = WaitForResponse(self.admin)
+                if not (res=="yes" or res=="YES"): raise Exception()
+            except:
+                await msg.edit(embed=GetErrorEmbed('中断しました'))
+        for player in self.Players.values():
+            await player.CancelView()
+            if player_data[player.player_name]["question"]:
+                view = AnswerInputForm(self,player,player_data[player.player_name]["question"],
+                                       title=f'{player.player_name}としての回答')
+                await player.channel.send(view=view,embed=view.GenerateInputStatus())
+            if player.role and player.channel:
+                if role_data[player.role.name]["question"]:
+                    view = AnswerInputForm(self,player,role_data[player.role.name]["question"],
+                                       title=f'{player.role.name}({player.player_name})としての回答')
+                    await player.channel.send(view=view,embed=view.GenerateInputStatus())
+        self.phase = "ゲーム終了"
+        await SendSystemMessage(self.loby,'ゲームを終了しました',mention='@here')
+          
+    async def PrintAdminHelp(self):
+        in_game = {"kill":"プレイヤーを死亡させる",
+                "change":"（トラブル対応用）DM送信状況や能力使用回数などを手動で変更する",
+                "end":"ゲームを終了し、ゲーム終了時の質問に回答させる",
+                "key":"プレイヤーに脱出パスワードを送信する"}
+        anytime = {"set":"チャンネルを設定する",
+                   "save":"ゲームデータを保存する(BOTがオフラインになっても保存されます)",
+                   "delete":"ゲームデータを削除する",
+                   "help":"現在の状況、コマンドを確認する"}
+        pre_game = {"start":"デスゲームを開始する"}
+        embed = discord.Embed(title='Help')
+        embed.add_field(name='現在の状況',value=self.phase)
+        embed.add_field(name='ゲーム経過時間',value=self.time_in_game)
+        embed.add_field(name='いつでも使えるコマンド',value='\n'.join([f'`!{key}    {value}`'for key,value in anytime.items()]),inline=False)
+        if self.phase=='ゲーム進行中': embed.add_field(name='ゲーム中コマンド',value='\n'.join([f'`!{key}    {value}`'for key,value in in_game.items()]),inline=False)
+        if self.phase=='ゲーム開始前': embed.add_field(name='ゲーム開始前コマンド',value='\n'.join([f'`!{key}    {value}`'for key,value in pre_game.items()]),inline=False)
+        await self.admin.send(embed=embed)
+          
+    async def Kill(self):
+        await SendSystemMessage(self.admin,'死亡者の名前を入力してください')
+        res = await WaitForResponse(self.admin)
+        res = DefineNameVariants(res)
+        if not res:
+            await SendError(self.admin,'不正な入力です')
+            return
+        self.Players[res].vital = 'dead'
+        await SendSystemMessage(self.admin,f'{res}は死亡しました')
+        await SendSystemMessage(self.Players[res].channel,'あなたは死亡しました')
+        
+    async def TriggerTimedEvent(self):
+        # 帝の思い出しメッセージ
+        if self.time_in_game in [10,15,20,30]:
+            await self.Players['帝秀一'].channel.send(embed=discord.Embed(description=text_data['Mikado_Memory'][str(self.time_in_game)]))
+        # 終了30分前の能力解放
+        if self.time_in_game==90:
+            for player in self.Roles['スペードの２']+self.Roles['キング']:
+                await SendSystemMessage(player.channel,'ゲーム終了30分前です\nあなたの能力が使用可能になりました。!useで使用できます')
+        if self.time_in_game==120:
+            await SendSystemMessage(self.loby,'ゲーム終了時間になりました。\nゲームマスターの指示にしたがってください',mention='@here')
+            await SendSystemMessage(self.admin,'ゲーム終了時間になりました。ゲームを終了（スマホの能力を停止し、ゲーム終了時の質問に回答させる）する場合は!endを入力してください',mention='@here')
     
+    async def ChangeParams(self):
+        # options(key: value)に番号を振り当て、番号で回答させる
+        # 選択したkeyのvalueを返す 失敗したらFalseを返す
+        async def wait(options:dict):
+            values = list()
+            keys = ''
+            for key,value in options.items():
+                values.append(value)
+                keys += f'\n{len(values)}. {key}'
+            msg = await SendSystemMessage(self.admin,headline='番号を入力してください',content=keys)
+            try:
+                res = await WaitForResponse(self.admin)
+                res = int(res)
+                if res<1 or len(options)<res: raise Exception()
+            except:
+                await msg.edit(embed=GetErrorEmbed('中断しました'))
+                return False
+            return values[res-1]
+        
+        # 分岐をネストして書いたほうが見やすいかもと思ってそうしてみた
+        options = {'ゲーム経過時間を変更':'time'}
+        for name,player in self.Players.items():
+            options[f'{name}の情報を変更'] = player
+        res = await wait(options)
+        if not res: return
+        
+        if res=='time': # 時間の変更
+            msg = await SendSystemMessage(self.admin,headline='経過分数を入力してください')
+            try:
+                res = await WaitForResponse(self.admin)
+                res = int(res)
+                if res<0 or res>120: raise Exception()
+            except:
+                await msg.edit(embed=GetErrorEmbed('中断しました'))
+                return
+            self.time_in_game = res
+            await SendSystemMessage(self.admin,f'ゲーム経過時間が{res}分に変更されました')
+            await SendSystemMessage(self.loby,f'ゲーム経過時間が{res}分に変更されました')
+            return
+        
+        player:Player = res
+        if player.player_name=='帝秀一':
+            options = {f'生存状況を変更(現在:{player.vital})':'生存状況',
+                       f'DM送信状況({"未送信" if player.sendable_roles else "送信済み"})':'DM送信状況'}
+            res = await wait(options)
+            if not res: return
+            if res=='生存状況':
+                if player.vital=='dead': player.vital='alive'
+                else: player.vital = 'dead'
+                await SendSystemMessage(self.admin,f'{player.player_name}は{player.vital}になりました')
+            elif res=='DM送信状況':
+                if player.sendable_roles: player.sendable_roles = list()
+                else: player.sendable_roles = ['不明な宛先']
+                await SendSystemMessage(self.admin,f'変更後の送信状況:{"未送信" if player.sendable_roles else "送信済み"}')
+        else: #その他一般プレイヤー
+            options = {f'生存状況を変更(現在:{player.vital})':'生存状況',
+                       f'DM送信可能な役職':'DM送信可能な役職',
+                       f'返信可能な役職':'返信可能な役職',
+                       f'能力の妨害状況(現在:{"妨害中" if player.role.is_ability_blocked else "なし"})':'能力の妨害状況',
+                       f'能力の残り使用回数(現在:{player.role.remaining_ability_usage})':'能力の残り使用回数'}
+            res = await wait(options)
+            if not res: return
+            if res=='生存状況':
+                if player.vital=='dead': player.vital='alive'
+                else: player.vital = 'dead'
+                await SendSystemMessage(self.admin,f'{player.player_name}は{player.vital}になりました')
+            elif res=='DM送信可能な役職':
+                options = dict()
+                for role_name in role_data:
+                    options[f'{role_name}({"未送信" if role_name in player.sendable_roles else "送信済み"})'] = role_name
+                res = await wait(options)
+                if not res: return
+                if res in player.sendable_roles: player.sendable_roles.remove(res)
+                else: player.sendable_roles.append(res)
+                await SendSystemMessage(self.admin,headline='変更の送信可能リスト',content=player.sendable_roles)
+            elif res=='返信可能な役職':
+                options = dict()
+                for role_name in role_data:
+                    options[f'{role_name}({"返信可能" if role_name in player.replyable_roles else "返信不可"})'] = role_name
+                res = await wait(options)
+                if not res: return
+                if res in player.replyable_roles: player.replyable_roles.remove(res)
+                else: player.replyable_roles.append(res)
+                await SendSystemMessage(self.admin,headline='変更の返信可能リスト',content=player.replyable_roles)
+            elif res=='能力の妨害状況':
+                player.role.is_ability_blocked = not player.role.is_ability_blocked
+                await SendSystemMessage(self.admin,f'変更後: {"妨害中" if player.role.is_ability_blocked else "なし"}')
+            elif res=='能力の残り使用回数':
+                msg = await SendSystemMessage(self.admin,headline='変更後の能力の残り使用回数を入力してください')
+                try:
+                    res = await WaitForResponse(self.admin)
+                    res = int(res)
+                    if res<0: raise Exception()
+                except:
+                    await msg.edit(embed=GetErrorEmbed('中断しました'))
+                    return
+                player.role.remaining_ability_usage = res
+                await SendSystemMessage(self.admin,f'変更後: {player.role.remaining_ability_usage}回')
+            
     async def Interpret(self,message:discord.Message):
-        if not message.content.startswith("!"): return
+        #if not message.content.startswith("!"): return
         cmd = message.content[1:]
         
         if cmd=="set":
@@ -400,23 +714,54 @@ class Game:
         elif cmd=="save":
             self.Save()
             await SendSystemMessage(message.channel,'進行状況を保存しました')
+        elif cmd=="delete":
+            await DeleteGameData(self,message)
+        elif cmd=='start': await self.StartGame()
         
         author = ""
         if message.channel==self.loby: author = "loby"
         elif message.channel==self.admin: author = "admin"
         for person in self.Players.values():
             if message.channel==person.channel: author:Player = person
+        # 以降、全てのチャンネル設定が前提
         if not author: return
         
-        if type(author)==Player:
+        # lobyコマンド
+        if author=='loby': return
+        
+        # adminコマンド
+        if author=='admin':
+            if cmd=='help': await self.PrintAdminHelp()
+            
+            # ゲーム中
+            if self.phase!="ゲーム進行中": return
+            if cmd=='kill': await self.Kill()
+            elif cmd=='change': await self.ChangeParams()
+            elif cmd=='end': await self.EndGame()
+            
+            return
+        
+        # ゲーム中、プレイヤー
+        if self.phase=='ゲーム進行中':
             for person in self.Players.values():
                 if message.channel==person.channel: player:Player = person
+            # 生存確認
+            if player.vital!='alive': return
                 
+            # 帝秀一
+            if player.player_name=='帝秀一':
+                if cmd=='help': await player.PrintHelpMessage(self)
+                if cmd=='dm': await player.SendMessageInputForm(self)
+                return
             # 本来はゲーム中コマンド
             # プレイヤー用コマンド
             if cmd=="dm" or cmd=="DM": await player.SendMessageInputForm(self)
+            if cmd=="reply": await player.SendReplyInputForm(self)
             if cmd=="use": await player.role.UseAbility(player,self)
             if cmd=="help": await player.PrintHelpMessage(self)
+            if cmd=="answer":
+                if player.role.name=='クイーン' or (player.role.name=='ジョーカー' and self.Roles['ジョーカー'][0].role.escape_condition.startswith('制限時間内に全役職の脱出条件を特定する')):
+                    await player.role.Answer(self,player)
             
     async def SetChannel(self,channel:discord.TextChannel):
         # 既に割当済み
@@ -457,6 +802,7 @@ class Game:
         if not self.loby: unset_channels.append("loby")
         if not self.admin: unset_channels.append("admin")
         for player in self.Players.values():
+            if player.player_name=='岩井紅音': continue
             if not player.channel: unset_channels.append(player.player_name)
             
         if unset_channels: return unset_channels
@@ -465,8 +811,7 @@ class Game:
 '''
     discord.ui
 '''
-
-# メッセージ入力フォーム: 
+# メッセージ入力フォーム
 class MessageInputForm(View):
     def __init__(self,game:Game,sender:Player,is_reply:bool=False):
         super().__init__(timeout=None)
@@ -494,17 +839,26 @@ class MessageInputForm(View):
         if self.address == "未選択" or self.content == "メッセージ未入力":
             await interaction.response.send_message(embed=GetErrorEmbed('未入力の項目があります'))
             return
+        self.sender.waiting_embed = None
         
         # 送信できるか確認
         try: 
-            self.sender.SendMessage(self.address,self.content,self.is_reply)
+            self.sender.SendMessage(self.address,self.is_reply)
         except Exception:
             await interaction.response.send_message(embed=GetErrorEmbed('送信できない宛先です'))
             return
         # 実行
+        if self.address=='帝秀一': #プレイヤーがジョーカーでり、帝秀一からのメッセージに返信する場合
+            self.game.Players['帝秀一'].ReceiveMessage('不明な宛先',self.content,self.is_reply)
+            await interaction.response.edit_message(view=None,embed=discord.Embed(title=f'以下のメッセージを送信しました',description=f'返信が届きました\n\n{self.content}'))
+            return
         for player in self.game.Players.values():
-            if player.role.name==self.address: await player.ReceiveMessage(self.sender.role_name,self.content,self.is_reply)
-        await interaction.response.edit_message(view=None,embed=discord.Embed(title=f'以下のメッセージを送信しました',description=f'{self.sender.role.name}からメッセージが届きました\n\n{self.content}'))
+            if player.player_name=='帝秀一': continue
+            if player.role.name==self.address: await player.ReceiveMessage(self.sender.role.name,self.content,self.is_reply)
+        if self.sender.player_name=='帝秀一':
+            await self.game.Roles['ジョーカー'][0].ReceiveMessage("帝秀一",self.content,self.is_reply)
+            await interaction.response.edit_message(view=None,embed=discord.Embed(title=f'以下のメッセージを送信しました',description=f'{self.sender.player_name}から{"返信" if self.is_reply else "メッセージ"}が届きました\n\n{self.content}'))
+        else: await interaction.response.edit_message(view=None,embed=discord.Embed(title=f'以下のメッセージを{self.address}に送信しました',description=f'{self.sender.role.name}から{"返信" if self.is_reply else "メッセージ"}が届きました\n\n{self.content}'))
         
     def GenerateInputStatus(self) -> discord.Embed:
         text = f"宛先: {self.address}\n\n{self.content}"
@@ -512,7 +866,44 @@ class MessageInputForm(View):
         embed.add_field(name='',value=text)
         return embed
     
-    
+# 帝用メッセージ入力フォーム
+class MikadoInputForm(View):
+    def __init__(self,game:Game):
+        super().__init__(timeout=None)
+        self.address:str = "不明な宛先"
+        self.content:str = "メッセージ未入力"
+        self.game = game
+        
+    @discord.ui.button(label="メッセージを入力する")
+    async def input_callback(self,interaction:discord.Interaction,button:Button):
+        await interaction.response.send_modal(InputModal(self))
+        
+    #HACK: 送信先が選択されるまでdisableにしたい/selectのcallback関数からアクセスする方法がわからない
+    @discord.ui.button(label="送信する")
+    async def button_callback(self,interaction:discord.Interaction,button:Button):
+        # 送信先が未選択 or メッセージ未記入 ならスルー
+        if self.content == "メッセージ未入力":
+            await interaction.response.send_message(embed=GetErrorEmbed('未入力の項目があります'))
+            return
+        self.game.Players['帝秀一'].waiting_embed = None
+        
+        # 送信できるか確認
+        try: 
+            self.game.Players['帝秀一'].SendMessage(self.address)
+        except Exception:
+            await interaction.response.edit_message(embed=GetErrorEmbed('既にメッセージを送信しています'))
+            return
+        # 実行
+        for player in self.game.Players.values():
+            if not player.role: continue
+            if player.role.name==self.address: await player.ReceiveMessage(self.sender.role.name,self.content,self.is_reply)
+        await interaction.response.edit_message(view=None,embed=discord.Embed(title=f'以下のメッセージを送信しました',description=f'帝秀一からメッセージが届きました\n\n{self.content}'))
+        
+    def GenerateInputStatus(self) -> discord.Embed:
+        text = f"宛先: {self.address}\n\n{self.content}"
+        embed = discord.Embed(title="メッセージ編集フォーム",color=0x7B68EE)
+        embed.add_field(name='',value=text)
+        return embed
 # "メッセージを入力"するModal
 class InputModal(discord.ui.Modal,title='入力フォーム'):
     ans = discord.ui.TextInput(label="メッセージ本文",style=discord.TextStyle.paragraph)
@@ -523,7 +914,114 @@ class InputModal(discord.ui.Modal,title='入力フォーム'):
     async def on_submit(self, interaction: Interaction) -> None:
         self.view.content = self.ans.value
         await interaction.response.edit_message(embed=self.view.GenerateInputStatus(),view=self.view)
+
+# 回答入力フォーム
+class AnswerInputForm(View):
+    def __init__(self,game:Game,respondent:Player,questions:list,title:str):
+        super().__init__(timeout=None)
+        self.respondent:Player = respondent
+        self.title = title #入力フォームembedのタイトル
+        self.game = game
+        self.questions = dict()
+        for question in questions:
+            self.questions[question] = '未入力'
+        
+    @discord.ui.button(label="回答を入力する")
+    async def input_callback(self,interaction:discord.Interaction,button:Button):
+        await interaction.response.send_modal(AnswerModal(self.questions.keys(),self))
+        
+    @discord.ui.button(label="送信する")
+    async def button_callback(self,interaction:discord.Interaction,button:Button):
+        self.respondent.waiting_embed = None
+        await self.game.admin.send(embed=self.GenerateInputStatus())
+        await interaction.response.edit_message(content='以下の内容で送信しました',view=None,embed=self.GenerateInputStatus())
+        
+    def GenerateInputStatus(self) -> discord.Embed:
+        embed = discord.Embed(title=self.title)
+        for key,value in self.questions.items():
+            embed.add_field(name=key,value=value,inline=False)
+        return embed
+
+# 質問(上限5)に回答する汎用的なモーダル
+class AnswerModal(discord.ui.Modal,title='回答せよ'):
+    def __init__(self,questions:list,view:AnswerInputForm):
+        super().__init__(timeout=None)
+        self.view = view
+        if len(questions)>5: raise Exception('Modalの上限は5です')
+        for question in questions:
+            self.add_item(discord.ui.TextInput(label=question))
             
+    async def on_submit(self, interaction: Interaction):
+        d = self.view.questions
+        for i in range(len(self.children)):
+            d[self.children[i].label] = self.children[i].value
+        self.view.questions = d
+        await interaction.response.edit_message(embed=self.view.GenerateInputStatus(),view=self.view)
+# Jack Ability
+class ViewForJack(View):
+    def __init__(self,player:Player):
+        super().__init__(timeout=None)
+        self.player:Player = player
+        
+    @discord.ui.select(options=[discord.SelectOption(label=key) for key in text_data['Jack_Ability']],
+                       placeholder='ここを押して選択')
+    async def callback(self,interaction:Interaction,select:Select):
+        select.disabled = True
+        # チェック
+        if self.player.role.remaining_ability_usage <= 0:
+            await interaction.response.edit_message(embed=GetErrorEmbed('能力の使用可能回数が残っていません'))
+        if self.player.role.is_ability_blocked:
+            await interaction.response.edit_message(embed=GetErrorEmbed('能力の使用が妨害されています'))
+        else:
+            self.player.role.remaining_ability_usage -= 1
+            await interaction.response.edit_message(view=self)
+            await SendSystemMessage(self.player.channel,f'残り{self.player.role.remaining_ability_usage}回',
+                                    headline=select.values[0],content=text_data['Jack_Ability'][select.values[0]])
+        self.player.waiting_embed = None
+    
+# Jokerの役職選択
+# 注意: StartGameからのみ呼ぶ(再帰するので)
+class ViewForJoker(View):
+    def __init__(self,game:Game):
+        super().__init__(timeout=None)
+        self.game = game
+    @discord.ui.select(options=[discord.SelectOption(label=name) for name in ['エース','クラブの３','ジャック','クイーン','ランダム']])
+    async def callback(self,interaction:Interaction,select:Select):
+        select.disabled = True
+        res = select.values[0]
+        if res=='ランダム':
+            res = ['エース','クラブの３','ジャック','クイーン'][random.randint(0,3)]
+        self.game.Roles['ジョーカー'][0].role.escape_condition = role_data[res]['escape_condition'].split('もしくは')[0] #"もしくは"以降はコピーしない
+        await interaction.response.send_message(content=f'{res}をコピーしました')
+        await self.game.StartGame() #再帰
+       
+# Queen/Joker(copy Queen)の回答
+class ViewForQueen(View):
+    def __init__(self,game:Game,player:Player):
+        super().__init__(timeout=None)
+        self.game = game
+        self.player = player
+        self.questions = self.player.role.answer_status
+        
+    @discord.ui.button(label='回答(前半)')
+    async def former_callback(self,interaction:Interaction,button:Button):
+        await interaction.response.send_modal(AnswerModal(['ジャック','キング','エース'],self))
+    @discord.ui.button(label='回答(後半)')
+    async def latter_callback(self,interaction:Interaction,button:Button):
+        await interaction.response.send_modal(AnswerModal(['スペードの２','クラブの３','ジョーカー'],self))
+    @discord.ui.button(label="一時保存・送信")
+    async def button_callback(self,interaction:discord.Interaction,button:Button):
+        self.player.waiting_embed = None
+        self.player.role.answer_status = self.questions
+        await self.game.admin.send(embed=self.GenerateInputStatus())
+        await interaction.response.edit_message(content='以下の内容で送信しました',view=None,embed=self.GenerateInputStatus())
+     
+    def GenerateInputStatus(self) -> discord.Embed:
+        embed = discord.Embed(title=f'{self.player.role.name}({self.player.player_name})の回答')
+        for key,value in self.player.role.answer_status.items():
+            embed.add_field(name=key,value=value,inline=False)
+        return embed
+
 '''
     サーバーの識別
 '''
@@ -546,8 +1044,11 @@ async def VerifyGuild(message:discord.Message) -> Game:
         if str(message.guild.id) in data.keys():
             game.Load(data[str(message.guild.id)]) 
             if game.phase == "ゲーム進行中":
-                # TODO: チャンネルが全て存在しているかチェック
-                await SendSystemMessage(game.loby,headline="ゲームを再開します")
+                check = game.IsChannelReady()
+                if not check==True:
+                    await SendError(message.channel,f'{", ".join(check)}が未設定です\n!setで設定した後に!startで再開してください')
+                    game.phase = "ゲーム開始前"
+                else: await SendSystemMessage(game.loby,headline="ゲームを再開します",mention='@here')
             if game.phase == "ゲーム終了":
                 await SendSystemMessage(game.loby,headline="ゲームが既に終了しています",content="新規ゲームを始める場合は「!start」を入力してください")
         else:
@@ -555,8 +1056,26 @@ async def VerifyGuild(message:discord.Message) -> Game:
             game.Save()
     return game
 
-# TODO: ゲームデータを削除する関数
-    
+async def DeleteGameData(game:Game,message:discord.Message):
+    msg = await SendSystemMessage(message.channel,'本当にゲームデータを削除する場合は「yes」を送信してください')
+    try:
+        res = await WaitForResponse(message.channel)
+        if not (res=='yes' or res=='YES'): raise Exception()
+    except:
+        await msg.edit(embed=GetErrorEmbed('中断しました'))
+    if message.guild in games:
+        games.pop(message.guild)
+    with open('save_data.json','r') as f:
+        try:
+            save_data = json.load(f)
+        except:
+            save_data = dict()
+    with open('save_data.json','w') as f:
+        if game.admin.guild.id in save_data:
+            save_data.pop(game.admin.guild.id)
+            json.dump(save_data,f,indent=4)
+    await SendSystemMessage(message.channel,'削除しました')
+            
 '''
     実行
 '''
@@ -567,9 +1086,8 @@ async def loop():
     for game in games.values():
         if game.phase=="ゲーム進行中":
             game.time_in_game += 1
-            # TODO: あとで書く 帝のメッセージと、能力解禁
-            if game.time_in_game in [10,15,20,30]: return
-            elif game.time_in_game==90: return
+            await game.TriggerTimedEvent()
+            game.Save() #オートセーブ 1分おき
 
 @client.event
 async def on_ready():

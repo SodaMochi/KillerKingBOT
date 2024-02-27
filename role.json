@@ -5,7 +5,8 @@
         "escape_condition":"ゲーム終了まで全員が生存している",
         "ability_description":"ゲーム中に10回まで「調査」ができる。調査項目は`!use`で確認できる",
         "ability_usage_count":10,
-        "ability_cooldown":0
+        "ability_cooldown":0,
+        "question":null
     },
     "クイーン":{
         "name":"クイーン",
@@ -13,7 +14,8 @@
         "escape_condition":"制限時間内に全役職の脱出条件を特定する",
         "ability_description":"ゲーム中に3回だけ、名前を入力すると、対象の役職と脱出条件を知ることができる。死んだ人間も含む。",
         "ability_usage_count":3,
-        "ability_cooldown":0
+        "ability_cooldown":0,
+        "question":null
     },
     "キング":{
         "name":"キング",
@@ -21,7 +23,8 @@
         "escape_condition":"制限時間内にプレイヤーを1人殺害する",
         "ability_description":"ゲーム終了30分前から、殺したい人物の名前を入力することで1度だけ殺害できる。",
         "ability_usage_count":1,
-        "ability_cooldown":90
+        "ability_cooldown":90,
+        "question":null
     },
     "エース":{
         "name":"エース",
@@ -29,15 +32,17 @@
         "escape_condition":"ゲーム終了時にQが生存している、もしくは白骨死体を殺した犯人を当てる",
         "ability_description":"ゲーム中に1度だけ、他プレイヤー1人の名前を入力することで、以降の能力の使用を無効にできる",
         "ability_usage_count":1,
-        "ability_cooldown":0
+        "ability_cooldown":0,
+        "question":["白骨死体を殺した犯人は？"]
     },
     "スペードの２":{
         "name":"スペードの２",
         "initial_player_name":["二宮杏奈"],
         "escape_condition":"制限時間内にQが死んでいる、もしくはGMの正体を暴く",
-        "ability_description":"ゲーム終了30分前から、殺したい人物の名前・役職・勝利条件を入力することで殺害できる。何度でも可能。",
+        "ability_description":"ゲーム終了30分前から、殺したい人物の名前・役職・脱出条件を入力することで殺害できる。何度でも可能。",
         "ability_usage_count":100,
-        "ability_cooldown":90
+        "ability_cooldown":90,
+        "question":["GMの正体は？"]
     },
     "クラブの３":{
         "name":"クラブの３",
@@ -45,7 +50,8 @@
         "escape_condition":"ゲーム終了時に、脱出条件を満たしたプレイヤーと死んだプレイヤーが合わせて３人以上いる",
         "ability_description":"ゲーム中に1度だけ、他プレイヤー2人の名前を入力することで、2人の役職(脱出条件と特殊能力)を入れ替えることができる。死んだ人間は選択できるが、自分は選択できない",
         "ability_usage_count":1,
-        "ability_cooldown":0
+        "ability_cooldown":0,
+        "question":null
     },
     "ジョーカー":{
         "name":"ジョーカー",
@@ -53,6 +59,7 @@
         "escape_condition":"",
         "ability_description":"なし",
         "ability_usage_count":0,
-        "ability_cooldown":0
+        "ability_cooldown":0,
+        "question":null
     }
 }

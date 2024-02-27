@@ -2,8 +2,9 @@
     "1107957737754742856": {
         "loby": 1208661827416760350,
         "admin_id": 1182589574908756019,
-        "phase": "\u30b2\u30fc\u30e0\u958b\u59cb\u524d",
-        "time_in_game": 0,
+        "phase": "\u30b2\u30fc\u30e0\u9032\u884c\u4e2d",
+        "time_in_game": 4,
+        "joker_escape_condition": "\u5236\u9650\u6642\u9593\u5185\u306b\u5168\u5f79\u8077\u306e\u8131\u51fa\u6761\u4ef6\u3092\u7279\u5b9a\u3059\u308b",
         "players": {
             "\u685c\u59eb\u821e\u9999": {
                 "role_name": "\u30a8\u30fc\u30b9",
@@ -11,15 +12,15 @@
                 "is_ability_blocked": false,
                 "channel_id": 1182589561474396222,
                 "sendable_roles": [
-                    "\u30a8\u30fc\u30b9",
-                    "\u30af\u30e9\u30d6\u306e\uff13",
                     "\u30af\u30a4\u30fc\u30f3",
-                    "\u30b9\u30da\u30fc\u30c9\u306e\uff12",
-                    "\u30b8\u30e3\u30c3\u30af",
                     "\u30ad\u30f3\u30b0",
+                    "\u30a8\u30fc\u30b9",
+                    "\u30b9\u30da\u30fc\u30c9\u306e\uff12",
+                    "\u30af\u30e9\u30d6\u306e\uff13",
                     "\u30b8\u30e7\u30fc\u30ab\u30fc"
                 ],
-                "replyable_roles": []
+                "replyable_roles": [],
+                "vital": "alive"
             },
             "\u82b1\u6751\u5149\u8f1d": {
                 "role_name": "\u30af\u30e9\u30d6\u306e\uff13",
@@ -27,15 +28,24 @@
                 "is_ability_blocked": false,
                 "channel_id": 1182589563688984638,
                 "sendable_roles": [
-                    "\u30a8\u30fc\u30b9",
-                    "\u30af\u30e9\u30d6\u306e\uff13",
-                    "\u30af\u30a4\u30fc\u30f3",
-                    "\u30b9\u30da\u30fc\u30c9\u306e\uff12",
                     "\u30b8\u30e3\u30c3\u30af",
+                    "\u30af\u30a4\u30fc\u30f3",
                     "\u30ad\u30f3\u30b0",
+                    "\u30a8\u30fc\u30b9",
+                    "\u30b9\u30da\u30fc\u30c9\u306e\uff12",
+                    "\u30af\u30e9\u30d6\u306e\uff13",
                     "\u30b8\u30e7\u30fc\u30ab\u30fc"
                 ],
-                "replyable_roles": []
+                "replyable_roles": [],
+                "vital": "alive"
+            },
+            "\u5e1d\u79c0\u4e00": {
+                "channel_id": 1182589572564123678,
+                "sendable_roles": [
+                    "\u4e0d\u660e\u306a\u5b9b\u5148"
+                ],
+                "replyable_roles": [],
+                "vital": "alive"
             },
             "\u671d\u6bd4\u5948\u3072\u306a\u5b50": {
                 "role_name": "\u30af\u30a4\u30fc\u30f3",
@@ -43,15 +53,16 @@
                 "is_ability_blocked": false,
                 "channel_id": 1182589565073100812,
                 "sendable_roles": [
-                    "\u30a8\u30fc\u30b9",
-                    "\u30af\u30e9\u30d6\u306e\uff13",
-                    "\u30af\u30a4\u30fc\u30f3",
-                    "\u30b9\u30da\u30fc\u30c9\u306e\uff12",
                     "\u30b8\u30e3\u30c3\u30af",
+                    "\u30af\u30a4\u30fc\u30f3",
                     "\u30ad\u30f3\u30b0",
+                    "\u30a8\u30fc\u30b9",
+                    "\u30b9\u30da\u30fc\u30c9\u306e\uff12",
+                    "\u30af\u30e9\u30d6\u306e\uff13",
                     "\u30b8\u30e7\u30fc\u30ab\u30fc"
                 ],
-                "replyable_roles": []
+                "replyable_roles": [],
+                "vital": "alive"
             },
             "\u4e8c\u5bae\u674f\u5948": {
                 "role_name": "\u30b9\u30da\u30fc\u30c9\u306e\uff12",
@@ -59,15 +70,16 @@
                 "is_ability_blocked": false,
                 "channel_id": 1182589566876647485,
                 "sendable_roles": [
-                    "\u30a8\u30fc\u30b9",
-                    "\u30af\u30e9\u30d6\u306e\uff13",
-                    "\u30af\u30a4\u30fc\u30f3",
-                    "\u30b9\u30da\u30fc\u30c9\u306e\uff12",
                     "\u30b8\u30e3\u30c3\u30af",
+                    "\u30af\u30a4\u30fc\u30f3",
                     "\u30ad\u30f3\u30b0",
+                    "\u30a8\u30fc\u30b9",
+                    "\u30b9\u30da\u30fc\u30c9\u306e\uff12",
+                    "\u30af\u30e9\u30d6\u306e\uff13",
                     "\u30b8\u30e7\u30fc\u30ab\u30fc"
                 ],
-                "replyable_roles": []
+                "replyable_roles": [],
+                "vital": "alive"
             },
             "\u5263\u5d0e\u8607\u82b3": {
                 "role_name": "\u30b8\u30e3\u30c3\u30af",
@@ -75,15 +87,18 @@
                 "is_ability_blocked": false,
                 "channel_id": 1182589568621477910,
                 "sendable_roles": [
-                    "\u30a8\u30fc\u30b9",
-                    "\u30af\u30e9\u30d6\u306e\uff13",
-                    "\u30af\u30a4\u30fc\u30f3",
-                    "\u30b9\u30da\u30fc\u30c9\u306e\uff12",
                     "\u30b8\u30e3\u30c3\u30af",
+                    "\u30af\u30a4\u30fc\u30f3",
                     "\u30ad\u30f3\u30b0",
+                    "\u30a8\u30fc\u30b9",
+                    "\u30b9\u30da\u30fc\u30c9\u306e\uff12",
+                    "\u30af\u30e9\u30d6\u306e\uff13",
                     "\u30b8\u30e7\u30fc\u30ab\u30fc"
                 ],
-                "replyable_roles": []
+                "replyable_roles": [
+                    "\u30a8\u30fc\u30b9"
+                ],
+                "vital": "alive"
             },
             "\u571f\u5c90\u3044\u3061\u304b": {
                 "role_name": "\u30ad\u30f3\u30b0",
@@ -91,15 +106,16 @@
                 "is_ability_blocked": false,
                 "channel_id": 1182589570504736830,
                 "sendable_roles": [
-                    "\u30a8\u30fc\u30b9",
-                    "\u30af\u30e9\u30d6\u306e\uff13",
-                    "\u30af\u30a4\u30fc\u30f3",
-                    "\u30b9\u30da\u30fc\u30c9\u306e\uff12",
                     "\u30b8\u30e3\u30c3\u30af",
+                    "\u30af\u30a4\u30fc\u30f3",
                     "\u30ad\u30f3\u30b0",
+                    "\u30a8\u30fc\u30b9",
+                    "\u30b9\u30da\u30fc\u30c9\u306e\uff12",
+                    "\u30af\u30e9\u30d6\u306e\uff13",
                     "\u30b8\u30e7\u30fc\u30ab\u30fc"
                 ],
-                "replyable_roles": []
+                "replyable_roles": [],
+                "vital": "alive"
             },
             "\u6d77\u5c71\u6708\u6b63": {
                 "role_name": "\u30b8\u30e7\u30fc\u30ab\u30fc",
@@ -107,15 +123,16 @@
                 "is_ability_blocked": false,
                 "channel_id": 1182589573860171776,
                 "sendable_roles": [
-                    "\u30a8\u30fc\u30b9",
-                    "\u30af\u30e9\u30d6\u306e\uff13",
-                    "\u30af\u30a4\u30fc\u30f3",
-                    "\u30b9\u30da\u30fc\u30c9\u306e\uff12",
                     "\u30b8\u30e3\u30c3\u30af",
+                    "\u30af\u30a4\u30fc\u30f3",
                     "\u30ad\u30f3\u30b0",
+                    "\u30a8\u30fc\u30b9",
+                    "\u30b9\u30da\u30fc\u30c9\u306e\uff12",
+                    "\u30af\u30e9\u30d6\u306e\uff13",
                     "\u30b8\u30e7\u30fc\u30ab\u30fc"
                 ],
-                "replyable_roles": []
+                "replyable_roles": [],
+                "vital": "alive"
             },
             "\u5ca9\u4e95\u7d05\u97f3": {
                 "role_name": "\u30af\u30a4\u30fc\u30f3",
@@ -123,28 +140,16 @@
                 "is_ability_blocked": false,
                 "channel_id": null,
                 "sendable_roles": [
-                    "\u30a8\u30fc\u30b9",
-                    "\u30af\u30e9\u30d6\u306e\uff13",
-                    "\u30af\u30a4\u30fc\u30f3",
-                    "\u30b9\u30da\u30fc\u30c9\u306e\uff12",
                     "\u30b8\u30e3\u30c3\u30af",
+                    "\u30af\u30a4\u30fc\u30f3",
                     "\u30ad\u30f3\u30b0",
+                    "\u30a8\u30fc\u30b9",
+                    "\u30b9\u30da\u30fc\u30c9\u306e\uff12",
+                    "\u30af\u30e9\u30d6\u306e\uff13",
                     "\u30b8\u30e7\u30fc\u30ab\u30fc"
                 ],
-                "replyable_roles": []
-            },
-            "\u5e1d\u79c0\u4e00": {
-                "channel_id": 1182589572564123678,
-                "sendable_roles": [
-                    "\u30a8\u30fc\u30b9",
-                    "\u30af\u30e9\u30d6\u306e\uff13",
-                    "\u30af\u30a4\u30fc\u30f3",
-                    "\u30b9\u30da\u30fc\u30c9\u306e\uff12",
-                    "\u30b8\u30e3\u30c3\u30af",
-                    "\u30ad\u30f3\u30b0",
-                    "\u30b8\u30e7\u30fc\u30ab\u30fc"
-                ],
-                "replyable_roles": []
+                "replyable_roles": [],
+                "vital": "alive"
             }
         }
     }
