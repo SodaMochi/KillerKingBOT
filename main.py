@@ -156,11 +156,11 @@ class Player:
 class Doki(Player):
     async def SendMessage(self, address_role: str,is_reply: bool = False):
         if is_reply:
-            if not address_role in self.replyable_roles:
+            if address_role not in self.replyable_roles:
                 raise Exception('invalid address')
             self.replyable_roles.remove(address_role)
         else:
-            if not address_role in self.sendable_roles:
+            if address_role not in self.sendable_roles:
                 raise Exception('invalid address')
             if address_role!='ジョーカー':
                 self.sendable_roles.remove(address_role)
@@ -569,11 +569,12 @@ class Game:
                 "change":"（トラブル対応用）DM送信状況や能力使用回数などを手動で変更する",
                 "end":"ゲームを終了し、ゲーム終了時の質問に回答させる"}
         anytime = {"key":"プレイヤーに脱出パスワードを送信する",
-                   "set":"チャンネルを設定する",
+                   "set":"手動でチャンネルを設定・変更する",
                    "save":"ゲームデータを保存する(BOTがオフラインになっても保存されます)",
                    "delete":"ゲームデータを削除する",
                    "help":"現在の状況、コマンドを確認する"}
-        pre_game = {"start":"デスゲームを開始する"}
+        pre_game = {"allset":"すべてのチャンネル・ロールを作成する",
+                    "start":"デスゲームを開始する"}
         embed = discord.Embed(title='Help')
         embed.add_field(name='現在の状況',value=self.phase)
         embed.add_field(name='ゲーム経過時間',value=self.time_in_game)
@@ -717,6 +718,7 @@ class Game:
         
         if cmd=="set":
             await self.SetChannel(message.channel)
+        elif cmd=="allset": await self.SetAllChannel(message)
         elif cmd=="save":
             self.Save()
             await SendSystemMessage(message.channel,'進行状況を保存しました')
@@ -769,6 +771,7 @@ class Game:
             if cmd=="answer":
                 if player.role.name=='クイーン' or (player.role.name=='ジョーカー' and self.Roles['ジョーカー'][0].role.escape_condition.startswith('制限時間内に全役職の脱出条件を特定する')):
                     await player.role.Answer(self,player)
+        self.Save() #セーブ
             
     async def SetChannel(self,channel:discord.TextChannel):
         # 既に割当済み
@@ -801,6 +804,46 @@ class Game:
             await SendSystemMessage(channel,f"{name}のチャンネルを設定しました")
             return
         await SendError(channel,"該当のチャンネル名が見つかりません\n漢字、ひらがな、名字、名前、フルネームのいずれかで入力してください")
+      
+    async def SetAllChannel(self,message:discord.Message):
+        if self.IsChannelReady()==True:
+            msg = await SendSystemMessage(message.channel,"すでに全てのチャンネルが設定済みです。本当に実行する場合は「yes」を入力してください")
+            try:
+                res = await WaitForResponse(message.channel)
+                if res!="yes": raise Exception()
+            except Exception:
+                await msg.edit(embed=GetErrorEmbed('中断しました'))
+                return
+        # 該当ロールが無ければ作成 (海山月正ロールを作るとネタバレなので、GM_KillerKingで代用)
+        names = list(map(lambda role:role.name, message.guild.roles)) #discordギルドのロール名リスト
+        if 'GM_KillerKing' in names: #あるなら取得
+            admin_role = message.guild.roles[names.index("GM_KillerKing")]
+        else:
+            admin_role = await message.guild.create_role(name='GM_KillerKing')
+        admin_overwrites = {message.guild.default_role: discord.PermissionOverwrite(read_messages=False),
+                            admin_role: discord.PermissionOverwrite(read_messages=True),
+                            message.guild.me: discord.PermissionOverwrite(read_messages=True)}
+        self.admin = await message.guild.create_text_channel(name='admin',category=message.channel.category,
+                                                overwrites=admin_overwrites)
+        for player_name in player_data:
+            if player_name=="岩井紅音": continue
+            if player_name=="海山月正": #GM_KillerKing ロールを適用（ネタバレ防止）
+                self.Players[player_name].channel = await message.guild.create_text_channel(name=f'{player_name}のスマホ',overwrites=admin_overwrites)
+                continue
+            if player_name in names:
+                role = message.guild.roles[names.index(player_name)]
+            else:
+                # 新規作成
+                role = await message.guild.create_role(name=player_name)
+            # チャンネル作成
+            self.Players[player_name].channel = await message.guild.create_text_channel(name=f'{player_name}のスマホ',
+                        overwrites={message.guild.default_role: discord.PermissionOverwrite(read_messages=False),
+                        admin_role: discord.PermissionOverwrite(read_messages=True),
+                        role: discord.PermissionOverwrite(read_messages=True),
+                        message.guild.me: discord.PermissionOverwrite(read_messages=True)},category=message.channel.category)
+        await SendSystemMessage(self.loby,headline='チャンネル・ロールを作成しました',content='プレイヤーに各ロールを割り当て、プロローグを終えたら!startでゲームを開始してください')
+
+            
         
     # チャンネルが全て設定済みかどうか
     # True or (未設定のチャンネル名リスト) を返す
