@@ -564,7 +564,7 @@ class Game:
         self.phase = "ゲーム終了"
         await SendSystemMessage(self.loby,'ゲームを終了しました',mention='@here')
           
-    async def PrintAdminHelp(self):
+    async def PrintAdminHelp(self,channel:discord.TextChannel=None):
         in_game = {"kill":"プレイヤーを死亡させる",
                 "change":"（トラブル対応用）DM送信状況や能力使用回数などを手動で変更する",
                 "end":"ゲームを終了し、ゲーム終了時の質問に回答させる"}
@@ -581,7 +581,8 @@ class Game:
         embed.add_field(name='いつでも使えるコマンド',value='\n'.join([f'`!{key}    {value}`'for key,value in anytime.items()]),inline=False)
         if self.phase=='ゲーム進行中': embed.add_field(name='ゲーム中コマンド',value='\n'.join([f'`!{key}    {value}`'for key,value in in_game.items()]),inline=False)
         if self.phase=='ゲーム開始前': embed.add_field(name='ゲーム開始前コマンド',value='\n'.join([f'`!{key}    {value}`'for key,value in pre_game.items()]),inline=False)
-        await self.admin.send(embed=embed)
+        if self.admin: await self.admin.send(embed=embed)
+        else: await channel.send(embed=embed)
           
     async def Kill(self):
         await SendSystemMessage(self.admin,'死亡者の名前を入力してください')
@@ -725,6 +726,7 @@ class Game:
         elif cmd=="delete":
             await DeleteGameData(self,message)
         elif cmd=='start': await self.StartGame()
+        elif cmd=='help' and self.phase=='ゲーム開始前': await self.PrintAdminHelp()
         
         author = ""
         if message.channel==self.loby: author = "loby"
